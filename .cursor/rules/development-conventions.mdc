@@ -1,0 +1,25 @@
+---
+description: Development Conventions - Naming standards
+alwaysApply: true
+---
+
+# Development Conventions
+
+## File Naming
+
+| Export Type | File Naming | Example |
+|-------------|-------------|---------|
+| Class | PascalCase | `Analyzer.ts` |
+| Function | lowerCamelCase | `scanConstants.ts` |
+| Constant | SCREAMING_SNAKE_CASE | `DEFAULT_CONFIG.ts` |
+| Type/Interface | lowerCamelCase | `constantsTypes.ts` |
+| Test | Mirror source + `.test` | `scanConstants.test.ts` |
+
+## Folder Naming
+
+- Use `kebab-case` for folders
+
+## Test File Mapping
+
+- `src/scanner/scanConstants.ts` → `__tests__/scanConstants.test.ts`
+- Test files in top-level `__tests__/` directory

@@ -1,0 +1,35 @@
+---
+description: AI Development Workflow - Mandatory quality checks
+alwaysApply: true
+---
+
+# AI Development Workflow - MANDATORY
+
+## Critical Requirements
+
+1. **After ANY code changes, MUST run:**
+   ```bash
+   npm run dev-workflow
+   ```
+
+2. **Never mark a task complete until this passes with SUCCESS status**
+
+3. **The workflow automatically:**
+   - Fixes formatting (Prettier)
+   - Fixes linting (ESLint)
+   - Verifies build (tsup)
+   - Runs type check (TypeScript)
+   - Runs tests (Vitest)
+
+4. **If workflow fails:**
+   - Fix the reported issues
+   - Run `npm run dev-workflow` again
+   - Only proceed when it shows "WORKFLOW SUCCESSFUL"
+
+## Quick Reference
+
+```bash
+npm run dev-workflow        # Full workflow with auto-fix (USE THIS)
+npm run dev-workflow:check  # Check without auto-fix
+npm run dev-workflow:quick  # Skip tests (development only)
+```

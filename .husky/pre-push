@@ -1,0 +1,25 @@
+#!/bin/bash
+# Pre-push hook: Runs build and tests
+
+set -e
+
+echo "🚀 Pre-push: Running build and test checks..."
+echo "=============================================="
+
+echo "🏗️  Running build..."
+if ! npm run build; then
+  echo ""
+  echo "❌ PUSH REJECTED: Build failed!"
+  exit 1
+fi
+
+echo "🧪 Running tests..."
+if ! npm run test; then
+  echo ""
+  echo "❌ PUSH REJECTED: Tests failed!"
+  exit 1
+fi
+
+echo ""
+echo "✅ Pre-push checks passed!"
+echo "=============================================="

@@ -1,0 +1,81 @@
+{
+  "name": "constants-check",
+  "version": "0.1.0",
+  "description": "Detect duplicate constants in TypeScript/JavaScript projects and highlight where they exist to drive refactoring",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "constants-check": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/cli.ts",
+    "format": "./scripts/format.sh --fix",
+    "format:check": "./scripts/format.sh --check",
+    "lint": "./scripts/lint.sh",
+    "lint:check": "./scripts/lint.sh --check",
+    "typecheck": "./scripts/typecheck.sh",
+    "test": "./scripts/test.sh",
+    "test:coverage": "./scripts/test.sh --coverage",
+    "dev-workflow": "./scripts/dev-workflow.sh --auto-fix",
+    "dev-workflow:check": "./scripts/dev-workflow.sh",
+    "dev-workflow:quick": "./scripts/dev-workflow.sh --auto-fix --skip-tests",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "constants",
+    "duplicate",
+    "refactoring",
+    "typescript",
+    "javascript",
+    "code-quality",
+    "cli",
+    "ast",
+    "linting"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianneisler/constants-check"
+  },
+  "homepage": "https://github.com/brianneisler/constants-check#readme",
+  "bugs": {
+    "url": "https://github.com/brianneisler/constants-check/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "ts-morph": "^27.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "@types/node": "^22.10.1",
+    "eslint": "^9.16.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "jiti": "^2.6.1",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.17.0",
+    "vitest": "^3.0.4",
+    "@vitest/coverage-v8": "^3.0.4"
+  }
+}

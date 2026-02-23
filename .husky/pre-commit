@@ -1,0 +1,34 @@
+#!/bin/bash
+# Pre-commit hook: Runs formatting, linting, and type checks
+
+set -e
+
+echo "🔍 Pre-commit: Running code quality checks..."
+echo "=============================================="
+
+echo "🎨 Running Prettier formatting checks..."
+if ! ./scripts/format.sh --check; then
+  echo ""
+  echo "❌ COMMIT REJECTED: Formatting issues found!"
+  echo "💡 Run 'npm run format' to fix"
+  exit 1
+fi
+
+echo "🔍 Running ESLint checks..."
+if ! ./scripts/lint.sh --check; then
+  echo ""
+  echo "❌ COMMIT REJECTED: ESLint failed!"
+  echo "💡 Run 'npm run lint' to fix"
+  exit 1
+fi
+
+echo "🔍 Running TypeScript checks..."
+if ! ./scripts/typecheck.sh; then
+  echo ""
+  echo "❌ COMMIT REJECTED: Type errors found!"
+  exit 1
+fi
+
+echo ""
+echo "✅ Pre-commit checks passed!"
+echo "=============================================="

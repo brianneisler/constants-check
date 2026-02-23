@@ -1,0 +1,17 @@
+---
+description: File Length Management
+alwaysApply: true
+---
+
+# File Length Management
+
+## Critical Rule
+
+When files exceed 250 lines, refactor into modular files. NEVER compress by removing comments, whitespace, or documentation.
+
+## Proper Abstraction
+
+1. Extract types to `*-types.ts` or `*Types.ts`
+2. Extract utilities to dedicated modules
+3. Extract business logic to focused modules
+4. Keep main file as orchestration only

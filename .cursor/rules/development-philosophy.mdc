@@ -1,0 +1,24 @@
+---
+description: Development Philosophy - Testing and quality
+alwaysApply: true
+---
+
+# Development Philosophy
+
+## Testing
+
+- Use Vitest for tests
+- One-to-one test file mapping (source → .test.ts)
+- Mock external dependencies; test real implementation
+- Use `vi.useFakeTimers()` for time-dependent code
+
+## Code Quality
+
+- Never disable ESLint rules to hide problems; fix root cause
+- Refactor complex functions; never increase complexity thresholds
+- Preserve documentation when refactoring
+
+## File Length
+
+- Max 250 lines per file
+- Extract modules when exceeding limit; never compress code

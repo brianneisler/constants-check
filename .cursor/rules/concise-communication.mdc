@@ -1,0 +1,14 @@
+---
+description: Concise Communication
+alwaysApply: true
+---
+
+# Concise Communication
+
+## Guidelines
+
+- Be direct; state what you're doing, not planning
+- Skip meta-commentary about process
+- Show through action, not words
+- Only report issues when something fails
+- Never create status update files (*_COMPLETE.md, etc.)
