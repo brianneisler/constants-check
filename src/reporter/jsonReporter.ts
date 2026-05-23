@@ -8,6 +8,16 @@ import type {
   DuplicateDefinitionGroup,
   ExtendedConstantsResult,
 } from '../types/constantsTypes.js';
+import { computeIssueCount } from '../core/computeIssueCount.js';
+
+export type ThresholdStatus = 'under' | 'at' | 'over' | 'not-configured';
+
+export function resolveThresholdStatus(total: number, threshold?: number): ThresholdStatus {
+  if (threshold == null) return 'not-configured';
+  if (total > threshold) return 'over';
+  if (total < threshold) return 'under';
+  return 'at';
+}
 
 interface JsonFinding {
   count: number;
@@ -66,6 +76,9 @@ interface JsonOutput {
     totalDuplicateStrings: number;
     totalDuplicateNumbers: number;
     totalDuplicateDefinitions: number;
+    totalIssues: number;
+    threshold?: number;
+    thresholdStatus?: ThresholdStatus;
   };
 }
 
@@ -132,32 +145,33 @@ function resultToJson(result: ConstantsResult | ExtendedConstantsResult): JsonPa
 export function formatAsJson(
   results: (ConstantsResult | ExtendedConstantsResult)[],
   analysisFailure: boolean,
-  analysisMode: string
+  analysisMode: string,
+  threshold?: number
 ): string {
   const analyzedResults = results.filter((r) => !r.skipped && r.hasSourceFiles);
   const packagesWithDuplicates = analyzedResults.filter((r) => !r.success);
 
-  const totalStrings = analyzedResults.reduce((sum, r) => sum + r.stringFindings.length, 0);
-  const totalNumbers = analyzedResults.reduce((sum, r) => sum + r.numberFindings.length, 0);
-  let totalDuplicateDefinitions = 0;
-  for (const result of analyzedResults) {
-    const ext = result as ExtendedConstantsResult;
-    if (ext.duplicateDefinitions) {
-      totalDuplicateDefinitions += ext.duplicateDefinitions.totalDuplicates;
-    }
+  const counts = computeIssueCount(analyzedResults);
+
+  const summary: JsonOutput['summary'] = {
+    totalPackages: analyzedResults.length,
+    packagesWithDuplicates: packagesWithDuplicates.length,
+    totalDuplicateStrings: counts.stringIssues,
+    totalDuplicateNumbers: counts.numberIssues,
+    totalDuplicateDefinitions: counts.definitionIssues,
+    totalIssues: counts.total,
+  };
+
+  if (threshold != null) {
+    summary.threshold = threshold;
+    summary.thresholdStatus = resolveThresholdStatus(counts.total, threshold);
   }
 
   const output: JsonOutput = {
     success: !analysisFailure,
     analysisMode,
     results: results.map(resultToJson),
-    summary: {
-      totalPackages: analyzedResults.length,
-      packagesWithDuplicates: packagesWithDuplicates.length,
-      totalDuplicateStrings: totalStrings,
-      totalDuplicateNumbers: totalNumbers,
-      totalDuplicateDefinitions,
-    },
+    summary,
   };
 
   return JSON.stringify(output, null, 2);

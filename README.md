@@ -76,6 +76,53 @@ npx constants-check
 | `-p, --paths <paths>`       | Comma-separated directories to scan         |
 | `-f, --files <files>`       | Comma-separated file filter for results     |
 | `--package-priority <pkgs>` | Consolidation priority (comma-separated)    |
+| `--threshold <n>`           | Max allowed issue count under `--check`     |
+
+## Configuration File
+
+Drop a `constants.config.json` at the root of your project (next to
+`package.json`) to set defaults for every CLI option without typing them
+each run. Any field is optional. Unknown keys are ignored.
+
+```json
+{
+  "monorepo": true,
+  "definitionsOnly": false,
+  "format": "console",
+  "paths": ["packages/core/src", "packages/utils/src"],
+  "packagePriority": ["@scope/core", "@scope/utils"],
+  "ignoreNumbers": [0, 1, 2, -1, 10, 100],
+  "minDuplication": 2,
+  "minStringLength": 3,
+  "threshold": 50
+}
+```
+
+**Precedence:** CLI flag > `constants.config.json` > built-in default. So a
+config file can set the project baseline while individual runs override it
+with one-off CLI flags.
+
+## Threshold Mode
+
+For projects that can't reach zero duplicates in a single pass, set a
+`threshold` (in `constants.config.json` or via `--threshold <n>`) and run
+with `--check`. The total issue count — every duplicate-literal occurrence
+plus every duplicate constant definition — is compared to the threshold:
+
+- **Above threshold** → exit code `1` with
+  `Issue count <total> exceeds threshold <n>. Fix issues to get the count to <n> or below.`
+- **At threshold** → exit code `0`, silent.
+- **Below threshold** → exit code `0` with
+  `Issue count <total> is below threshold <n>. Consider lowering the threshold to <total> to lock in progress.`
+
+This turns `constants-check` into a ratchet: every PR has to keep the
+count at or under the configured limit, and the friendly nudge prompts you
+to tighten the threshold whenever you make real progress.
+
+Without `--check`, the threshold is reported but never causes a non-zero
+exit. JSON output (`--format json`) always includes `summary.totalIssues`,
+and when a threshold is configured it also includes `summary.threshold` and
+`summary.thresholdStatus` (`under` | `at` | `over`).
 
 ## Programmatic API
 
