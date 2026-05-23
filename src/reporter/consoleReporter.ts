@@ -229,6 +229,23 @@ export function printConstantsSummary(
   }
 }
 
+export function printThresholdSummary(total: number, threshold: number): void {
+  console.log('');
+  if (total > threshold) {
+    console.log(
+      chalk.red('[CONSTANTS]'),
+      `Issue count ${total} exceeds threshold ${threshold}. Fix issues to get the count to ${threshold} or below.`
+    );
+  } else if (total < threshold) {
+    console.log(
+      chalk.green('[CONSTANTS]'),
+      `Issue count ${total} is below threshold ${threshold}. Consider lowering the threshold to ${total} to lock in progress.`
+    );
+  } else {
+    console.log(chalk.green('[CONSTANTS]'), `Issue count ${total} is at the configured threshold.`);
+  }
+}
+
 export function printUsage(): void {
   console.log('');
   console.log('Usage:');
