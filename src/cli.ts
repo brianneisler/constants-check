@@ -4,7 +4,7 @@
  */
 
 import { createRequire } from 'module';
-import { Command } from 'commander';
+import { Command, InvalidArgumentError } from 'commander';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -19,6 +19,14 @@ import { formatAsJson } from './reporter/jsonReporter.js';
 import { discoverProjects, getSingleProjectInfo } from './core/projectDiscovery.js';
 import { loadConfigFile } from './core/loadConfigFile.js';
 import { computeIssueCount } from './core/computeIssueCount.js';
+
+function parseThresholdArg(value: string): number {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0) {
+    throw new InvalidArgumentError(`Invalid threshold "${value}": must be a non-negative integer.`);
+  }
+  return n;
+}
 
 const program = new Command();
 
@@ -49,7 +57,7 @@ program
     'Comma-separated package priority for consolidation (first = highest)',
     (v: string) => v.split(',').map((s) => s.trim())
   )
-  .option('--threshold <n>', 'Max allowed issue count under --check', (v: string) => Number(v));
+  .option('--threshold <n>', 'Max allowed issue count under --check', parseThresholdArg);
 
 program.parse();
 
@@ -159,7 +167,7 @@ async function main(): Promise<void> {
       }
 
       printConstantsSummary(result.results, result.analysisMode);
-      if (threshold != null) {
+      if (threshold != null && !check) {
         printThresholdSummary(issueCount.total, threshold);
       }
       printUsage();

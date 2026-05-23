@@ -26,7 +26,6 @@ describe('loadConfigFile', () => {
       definitionsOnly: true,
       verbose: false,
       format: 'json',
-      root: '/some/path',
       paths: ['src', 'lib'],
       files: ['a.ts', 'b.ts'],
       packagePriority: ['core', 'utils'],
@@ -39,6 +38,28 @@ describe('loadConfigFile', () => {
 
     const loaded = await loadConfigFile(dir);
     expect(loaded).toEqual(cfg);
+  });
+
+  it('drops root (not a supported config field)', async () => {
+    await writeFile(
+      join(dir, CONFIG_FILE_NAME),
+      JSON.stringify({ root: '/some/path', threshold: 10 }),
+      'utf8'
+    );
+
+    const loaded = await loadConfigFile(dir);
+    expect(loaded).toEqual({ threshold: 10 });
+    expect((loaded as Record<string, unknown>).root).toBeUndefined();
+  });
+
+  it('rejects non-integer or negative threshold values', async () => {
+    await writeFile(
+      join(dir, CONFIG_FILE_NAME),
+      JSON.stringify({ threshold: -5, minDuplication: 2.5 }),
+      'utf8'
+    );
+
+    expect(await loadConfigFile(dir)).toEqual({});
   });
 
   it('drops unknown keys silently', async () => {

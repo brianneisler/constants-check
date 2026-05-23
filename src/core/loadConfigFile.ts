@@ -15,7 +15,6 @@ export interface ConstantsConfigFile {
   definitionsOnly?: boolean;
   verbose?: boolean;
   format?: 'console' | 'json';
-  root?: string;
   paths?: string[];
   files?: string[];
   packagePriority?: string[];
@@ -52,7 +51,9 @@ function pickKnown(raw: Record<string, unknown>): ConstantsConfigFile {
 
   for (const key of NUMBER_KEYS) {
     const v = raw[key];
-    if (typeof v === 'number' && Number.isFinite(v)) (out as Record<string, unknown>)[key] = v;
+    if (typeof v === 'number' && Number.isInteger(v) && v >= 0) {
+      (out as Record<string, unknown>)[key] = v;
+    }
   }
 
   for (const key of STRING_ARRAY_KEYS) {
@@ -63,7 +64,6 @@ function pickKnown(raw: Record<string, unknown>): ConstantsConfigFile {
   }
 
   if (raw.format === 'console' || raw.format === 'json') out.format = raw.format;
-  if (typeof raw.root === 'string') out.root = raw.root;
 
   if (Array.isArray(raw.ignoreNumbers) && raw.ignoreNumbers.every((x) => typeof x === 'number')) {
     out.ignoreNumbers = raw.ignoreNumbers as number[];
