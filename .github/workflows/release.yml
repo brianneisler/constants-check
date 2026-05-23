@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CI-validated commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+          persist-credentials: true
+
+      - name: Detect version change
+        id: detect
+        run: |
+          set -euo pipefail
+          NEW=$(node -p "require('./package.json').version")
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            OLD=$(git show HEAD~1:package.json 2>/dev/null \
+              | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{try{process.stdout.write(JSON.parse(s).version||'')}catch(e){}})")
+          else
+            OLD=""
+          fi
+          echo "old=$OLD"
+          echo "new=$NEW"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          if [ "$NEW" != "$OLD" ] && [ -n "$NEW" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "tag=v$NEW"   >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check whether tag already exists
+        id: tagcheck
+        if: steps.detect.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.detect.outputs.tag }}
+        run: |
+          if git ls-remote --tags --exit-code origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "exists=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push annotated tag
+        if: steps.detect.outputs.changed == 'true' && steps.tagcheck.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.detect.outputs.tag }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "refs/tags/$TAG"
+
+      - name: Create GitHub Release
+        if: steps.detect.outputs.changed == 'true' && steps.tagcheck.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.detect.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --verify-tag \
+            --generate-notes
