@@ -94,7 +94,34 @@ export function isImportOrExport(node: Node): boolean {
   const isImport = Node.isImportDeclaration(parent) || Node.isImportSpecifier(parent);
   const isExport = Node.isExportDeclaration(parent) || Node.isExportSpecifier(parent);
   const isExternalModule = Node.isExternalModuleReference(parent);
-  return isImport || isExport || isExternalModule;
+  return isImport || isExport || isExternalModule || isModuleSpecifierArgument(node);
+}
+
+/**
+ * Detects module specifier literals passed to dynamic `import('...')` or
+ * `require('...')` calls. These are module paths, not reusable constants, so
+ * they should never be reported as duplicate literals.
+ */
+function isModuleSpecifierArgument(node: Node): boolean {
+  const parent = node.getParent();
+  if (!Node.isCallExpression(parent)) {
+    return false;
+  }
+
+  // The literal must be the (first) call argument, not some other position.
+  if (parent.getArguments()[0] !== node) {
+    return false;
+  }
+
+  const expression = parent.getExpression();
+
+  // Dynamic import: import('...')
+  if (expression.getKind() === SyntaxKind.ImportKeyword) {
+    return true;
+  }
+
+  // CommonJS require: require('...')
+  return Node.isIdentifier(expression) && expression.getText() === 'require';
 }
 
 export function isPropertyKey(node: Node): boolean {
