@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Pilot configuration. 'mutate' is intentionally scoped to the modules that already have tests so we get a meaningful baseline mutation score instead of a flood of survivors from untested code. Expand this list as test coverage grows. break is 0 (report-only — score can never fall below 0, so CI never fails on mutation score yet); raise it once a baseline is established.",
+  "packageManager": "npm",
+  "testRunner": "vitest",
+  "checkers": ["typescript"],
+  "tsconfigFile": "tsconfig.json",
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/comparison/deepEqual.ts",
+    "src/comparison/fuzzyMatch.ts",
+    "src/scanner/scanConstants.ts",
+    "src/core/computeIssueCount.ts",
+    "src/core/loadConfigFile.ts"
+  ],
+  "ignorePatterns": ["dist", "coverage", ".stryker-tmp"],
+  "incremental": true,
+  "incrementalFile": ".stryker-tmp/incremental.json",
+  "reporters": ["html", "clear-text", "progress"],
+  "htmlReporter": { "fileName": "reports/mutation/index.html" },
+  "thresholds": { "high": 80, "low": 60, "break": 0 }
+}
