@@ -92,6 +92,18 @@ describe('analyzePackageConstants', () => {
     expect(result.success).toBe(false);
   });
 
+  it('suppresses single-package definition duplicates under crossPackageDefinitionsOnly', async () => {
+    await src('c.ts', `export const MAX_SIZE = 4096;\nexport const MAX_SIZES = 4096;\n`);
+
+    const withFlag = await analyzePackageConstants(dir, dir, 'pkg', 'Pkg', {
+      crossPackageDefinitionsOnly: true,
+    });
+    expect(withFlag.duplicateDefinitions?.totalDuplicates).toBe(0);
+
+    const without = await analyzePackageConstants(dir, dir, 'pkg', 'Pkg');
+    expect(without.duplicateDefinitions!.totalDuplicates).toBeGreaterThan(0);
+  });
+
   it('skips literal scanning under definitionsOnly but still finds definitions', async () => {
     await src('a.ts', `export function a() { return use('shared-literal-value'); }\n`);
     await src('b.ts', `export function b() { return use('shared-literal-value'); }\n`);

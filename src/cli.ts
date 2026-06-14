@@ -43,6 +43,10 @@ program
     '--cross-package',
     'Cross-package analysis only (monorepo mode, skip per-package analysis)'
   )
+  .option(
+    '--cross-package-definitions-only',
+    'Only report duplicate constant definitions that span more than one package'
+  )
   .option('-d, --definitions-only', 'Only check for duplicate constant definitions')
   .option('-v, --verbose', 'Verbose output')
   .option('-r, --root <path>', 'Root directory to analyze')
@@ -66,6 +70,7 @@ interface CliOptions {
   format?: string;
   monorepo?: boolean;
   crossPackage?: boolean;
+  crossPackageDefinitionsOnly?: boolean;
   definitionsOnly?: boolean;
   verbose?: boolean;
   root?: string;
@@ -85,6 +90,8 @@ async function main(): Promise<void> {
   const check = cliOpts.check ?? false;
   const monorepo = cliOpts.monorepo ?? fileCfg?.monorepo ?? false;
   const crossPackage = cliOpts.crossPackage ?? fileCfg?.crossPackage ?? false;
+  const crossPackageDefinitionsOnly =
+    cliOpts.crossPackageDefinitionsOnly ?? fileCfg?.crossPackageDefinitionsOnly ?? false;
   const definitionsOnly = cliOpts.definitionsOnly ?? fileCfg?.definitionsOnly ?? false;
   const verbose = cliOpts.verbose ?? fileCfg?.verbose ?? false;
   const paths = cliOpts.paths ?? fileCfg?.paths;
@@ -122,6 +129,7 @@ async function main(): Promise<void> {
       monorepo,
       paths: paths && paths.length > 0 ? paths : undefined,
       crossPackageOnly: crossPackage,
+      crossPackageDefinitionsOnly,
       definitionsOnly,
       verbose,
       files: files && files.length > 0 ? files : undefined,

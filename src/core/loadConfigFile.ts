@@ -12,6 +12,7 @@ export interface ConstantsConfigFile {
   // CLI-runtime options
   monorepo?: boolean;
   crossPackage?: boolean;
+  crossPackageDefinitionsOnly?: boolean;
   definitionsOnly?: boolean;
   verbose?: boolean;
   format?: 'console' | 'json';
@@ -31,6 +32,7 @@ export interface ConstantsConfigFile {
 const BOOL_KEYS: (keyof ConstantsConfigFile)[] = [
   'monorepo',
   'crossPackage',
+  'crossPackageDefinitionsOnly',
   'definitionsOnly',
   'verbose',
 ];

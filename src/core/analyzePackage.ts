@@ -88,6 +88,7 @@ export interface AnalyzePackageOptions {
   config?: ConstantsConfig;
   definitionsOnly?: boolean;
   packagePriority?: string[];
+  crossPackageDefinitionsOnly?: boolean;
 }
 
 export async function analyzePackageConstants(
@@ -97,7 +98,12 @@ export async function analyzePackageConstants(
   displayName: string,
   options: AnalyzePackageOptions = {}
 ): Promise<ExtendedConstantsResult> {
-  const { config = DEFAULT_CONFIG, definitionsOnly = false, packagePriority = [] } = options;
+  const {
+    config = DEFAULT_CONFIG,
+    definitionsOnly = false,
+    packagePriority = [],
+    crossPackageDefinitionsOnly = false,
+  } = options;
 
   const srcPath = path.join(projectPath, 'src');
   const tsconfigPath = path.join(projectPath, 'tsconfig.json');
@@ -161,6 +167,7 @@ export async function analyzePackageConstants(
 
   const duplicateDefinitions = analyzeDuplicateDefinitions(stringConstants, numberConstants, {
     packagePriority,
+    crossPackageOnly: crossPackageDefinitionsOnly,
   });
 
   const hasDuplicates =

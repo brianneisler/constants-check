@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { runConstantsAnalyzer } from '../../src/core/analyzeProject.js';
+import type { ExtendedConstantsResult } from '../../src/types/constantsTypes.js';
 
 async function tsProject(dir: string): Promise<void> {
   await writeFile(join(dir, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }), 'utf8');
@@ -129,6 +130,23 @@ describe('runConstantsAnalyzer', () => {
 
     const { results } = await runConstantsAnalyzer({ root, definitionsOnly: true });
     expect(results[0].stringFindings).toHaveLength(0);
+  });
+
+  it('passes crossPackageDefinitionsOnly through to suppress single-package duplicates', async () => {
+    await tsProject(root);
+    await writeFile(
+      join(root, 'src', 'a.ts'),
+      `export const MAX_SIZE = 4096;\nexport const MAX_SIZES = 4096;\n`,
+      'utf8'
+    );
+
+    const flagged = await runConstantsAnalyzer({ root, crossPackageDefinitionsOnly: true });
+    const flaggedResult = flagged.results[0] as ExtendedConstantsResult;
+    expect(flaggedResult.duplicateDefinitions?.totalDuplicates).toBe(0);
+
+    const baseline = await runConstantsAnalyzer({ root });
+    const baselineResult = baseline.results[0] as ExtendedConstantsResult;
+    expect(baselineResult.duplicateDefinitions!.totalDuplicates).toBeGreaterThan(0);
   });
 
   it('runs cross-package-only analysis and reports a single cross-package result', async () => {

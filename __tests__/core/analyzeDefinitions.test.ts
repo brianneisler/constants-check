@@ -123,6 +123,44 @@ describe('analyzeDuplicateDefinitions', () => {
     expect(result.totalDuplicates).toBe(1);
   });
 
+  describe('crossPackageOnly', () => {
+    it('reports a single-package duplicate by default', () => {
+      const result = analyzeDuplicateDefinitions(
+        stringMap(
+          def({ name: 'API_URL', value: 'v', packageName: 'solo' }),
+          def({ name: 'API_URL', value: 'v', packageName: 'solo' })
+        ),
+        empty
+      );
+      expect(result.totalDuplicates).toBe(1);
+    });
+
+    it('suppresses a single-package duplicate when crossPackageOnly is set', () => {
+      const result = analyzeDuplicateDefinitions(
+        stringMap(
+          def({ name: 'API_URL', value: 'v', packageName: 'solo' }),
+          def({ name: 'API_URL', value: 'v', packageName: 'solo' })
+        ),
+        empty,
+        { crossPackageOnly: true }
+      );
+      expect(result.totalDuplicates).toBe(0);
+    });
+
+    it('still reports a multi-package duplicate when crossPackageOnly is set', () => {
+      const result = analyzeDuplicateDefinitions(
+        stringMap(
+          def({ name: 'API_URL', value: 'v', packageName: 'alpha' }),
+          def({ name: 'API_URL', value: 'v', packageName: 'beta' })
+        ),
+        empty,
+        { crossPackageOnly: true }
+      );
+      expect(result.totalDuplicates).toBe(1);
+      expect(result.affectedPackages).toEqual(['alpha', 'beta']);
+    });
+  });
+
   it('classifies string-valued groups', () => {
     const result = analyzeDuplicateDefinitions(
       stringMap(

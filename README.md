@@ -70,6 +70,7 @@ npx constants-check
 | `-j, --format <format>`     | Output: `console` (default) or `json`       |
 | `-m, --monorepo`            | Analyze monorepo (packages/ or workspaces)  |
 | `--cross-package`           | Cross-package analysis only                 |
+| `--cross-package-definitions-only` | Only report duplicate definitions that span >1 package |
 | `-d, --definitions-only`    | Only check duplicate constant definitions   |
 | `-v, --verbose`             | Verbose output                              |
 | `-r, --root <path>`         | Root directory (default: cwd)               |

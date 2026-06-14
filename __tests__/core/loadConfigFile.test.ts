@@ -23,6 +23,7 @@ describe('loadConfigFile', () => {
     const cfg = {
       monorepo: true,
       crossPackage: false,
+      crossPackageDefinitionsOnly: true,
       definitionsOnly: true,
       verbose: false,
       format: 'json',

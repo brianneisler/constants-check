@@ -15,10 +15,9 @@ export async function fileExists(filePath: string): Promise<boolean> {
 }
 
 export async function readJsonFile<T = unknown>(filePath: string): Promise<T | null> {
+  // A missing/unreadable file rejects readFile, which the catch turns into null;
+  // a separate fileExists check would be redundant and introduce a TOCTOU race.
   try {
-    if (!(await fileExists(filePath))) {
-      return null;
-    }
     const content = await readFile(filePath, 'utf8');
     return JSON.parse(content) as T;
   } catch {
@@ -31,9 +30,6 @@ export async function safeReadFile(
   encoding: 'utf8' | 'ascii' | 'base64' | 'latin1' | 'hex' = 'utf8'
 ): Promise<string | null> {
   try {
-    if (!(await fileExists(filePath))) {
-      return null;
-    }
     return await readFile(filePath, encoding);
   } catch {
     return null;
