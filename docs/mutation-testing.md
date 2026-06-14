@@ -39,55 +39,61 @@ mutants line by line.
 
 ## Current score
 
-The suite scores **~85%** mutation coverage across the library. Per-file
+The suite scores **~86%** mutation coverage across the library. Per-file
 highlights:
 
 | File                    | Score | Notes                                      |
 | ----------------------- | ----- | ------------------------------------------ |
 | computeIssueCount.ts    | 100%  |                                            |
-| config.ts               | 100%  |                                            |
 | hashUtils.ts            | 100%  | pinned reference hashes                    |
 | scanObjects.ts          | 100%  |                                            |
+| fileUtils.ts            | 100%  | redundant guard removed (see below)        |
 | handleIgnoreComments.ts | 97%   |                                            |
 | loadConfigFile.ts       | 96%   |                                            |
 | jsonReporter.ts         | 93%   |                                            |
+| fuzzyMatch.ts           | 92%   |                                            |
 | consoleReporter.ts      | 92%   | exact rendered-output assertions           |
 | scanLiterals.ts         | 91%   |                                            |
-| fuzzyMatch.ts           | 90%   | remaining survivors are equivalent mutants |
+| analyzeDefinitions.ts   | 89%   |                                            |
 | scanConstants.ts        | 88%   |                                            |
 | projectDiscovery.ts     | 86%   |                                            |
-| analyzeDefinitions.ts   | 81%   |                                            |
 | detectTypeContext.ts    | 80%   |                                            |
-| analyzePackage.ts       | 77%   |                                            |
-| deepEqual.ts            | 77%   | remaining survivors are equivalent mutants |
-| analyzeCrossPackage.ts  | 69%   |                                            |
-| analyzeProject.ts       | 64%   | uncovered: error + option-default branches |
-| fileUtils.ts            | 60%   | remaining survivors are equivalent mutants |
+| analyzePackage.ts       | 79%   |                                            |
+| deepEqual.ts            | 79%   | residual equivalent mutants                |
+| analyzeCrossPackage.ts  | 67%   |                                            |
+| analyzeProject.ts       | 65%   | uncovered: error + option-default branches |
 
 ## Enforcement
 
 `stryker.config.json` sets `thresholds.break` to **80** — the mutation job
-fails if the overall score drops below it. The 5-point gap below the current
-~85% absorbs the known equivalent mutants without making CI flaky. Ratchet
+fails if the overall score drops below it. The gap below the current ~86%
+absorbs the residual equivalent mutants without making CI flaky. Ratchet
 `break` upward as the score climbs.
 
-## A note on equivalent mutants
+## Survivors that turned out to be real issues
 
-Not every surviving mutant is a real test gap. An **equivalent mutant** changes
-the source without changing observable behavior, so no test can kill it. The
-lower-scoring files here are dominated by these:
+Not every surviving mutant is a test gap. An **equivalent mutant** changes the
+source without changing observable behavior — and that almost always means the
+underlying code is dead, redundant, or buggy. Mutation testing surfaced several
+such cases, which were then fixed rather than worked around:
 
-- **`deepEqual.ts`** — early `===`, `null`, and `undefined` short-circuits mean
-  several downstream type/key checks can be mutated without changing any result
-  (the fall-through path returns the same value).
-- **`fuzzyMatch.ts`** — the `s1 === s2` shortcut shadows the empty-string
-  branches, which are therefore unreachable for distinct inputs.
-- **`fileUtils.ts`** — the `fileExists` guard is redundant with the surrounding
-  `try/catch`: removing it just lets `readFile` throw and be caught, returning
-  the same `null`.
+- **`deepEqual.ts`** conflated arrays with objects (`[1]` compared equal to
+  `{0: 1}`). The redundant array branch is gone; a mixed array/object pair now
+  short-circuits to `false`.
+- **`fileUtils.ts`** guarded `readFile` with a separate `fileExists` check that
+  was behaviorally redundant with the surrounding `try/catch` (and a TOCTOU
+  race). Removing it took the file from 60% → 100% — the unkillable mutants
+  *were* the dead code.
+- **`fuzzyMatch.ts`** had an unreachable both-empty-string branch shadowed by the
+  `s1 === s2` shortcut; removed.
+- **`config.ts`** exported `ENABLE_DEEP_OBJECT_COMPARISON` and
+  `DEFAULT_PACKAGE_PRIORITY` that nothing referenced, plus a `CROSS_PACKAGE_ONLY`
+  constant whose only consumer was a permanently-dead branch. The flag is now
+  wired to a real `--cross-package-definitions-only` CLI option.
 
-These are documented rather than chased, so reviewers don't waste effort trying
-to "fix" untestable lines.
+The residual survivors in `deepEqual.ts` are genuine equivalent mutants (early
+`===`/`null` short-circuits whose fall-through returns the same value) and are
+documented rather than chased.
 
 ## Where to improve next
 

@@ -39,8 +39,12 @@ export function deepEqual(value1: unknown, value2: unknown): boolean {
   const primitiveResult = comparePrimitives(value1, value2);
   if (primitiveResult !== null) return primitiveResult;
 
-  if (Array.isArray(value1) && Array.isArray(value2)) {
-    return areArraysEqual(value1, value2);
+  // Arrays and plain objects are different kinds: an array is only equal to
+  // another array, never to an object that happens to share index-like keys.
+  const isArray1 = Array.isArray(value1);
+  const isArray2 = Array.isArray(value2);
+  if (isArray1 || isArray2) {
+    return isArray1 && isArray2 ? areArraysEqual(value1, value2) : false;
   }
 
   if (typeof value1 === 'object' && typeof value2 === 'object') {

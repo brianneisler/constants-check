@@ -105,5 +105,16 @@ describe('deepEqual', () => {
       expect(deepEqual([1], 1)).toBe(false);
       expect(deepEqual(1, [1])).toBe(false);
     });
+
+    it('does not treat an array as equal to an object with matching index keys', () => {
+      expect(deepEqual([1], { 0: 1 })).toBe(false);
+      expect(deepEqual({ 0: 1 }, [1])).toBe(false);
+      expect(deepEqual([1, 2], { 0: 1, 1: 2 })).toBe(false);
+    });
+
+    it('does not treat an empty array as equal to an empty object', () => {
+      expect(deepEqual([], {})).toBe(false);
+      expect(deepEqual({}, [])).toBe(false);
+    });
   });
 });

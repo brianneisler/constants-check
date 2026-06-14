@@ -35,7 +35,6 @@ export function calculateSimilarity(str1: string, str2: string): number {
   const s2 = str2.toLowerCase();
 
   if (s1 === s2) return 1.0;
-  if (s1.length === 0 && s2.length === 0) return 1.0;
   if (s1.length === 0 || s2.length === 0) return 0.0;
 
   const distance = levenshteinDistance(s1, s2);
