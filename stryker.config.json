@@ -1,22 +1,22 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
-  "_comment": "Pilot configuration. 'mutate' is intentionally scoped to the modules that already have tests so we get a meaningful baseline mutation score instead of a flood of survivors from untested code. Expand this list as test coverage grows. break is 0 (report-only — score can never fall below 0, so CI never fails on mutation score yet); raise it once a baseline is established.",
+  "_comment": "'mutate' covers the full analysis library. The CLI entry (cli.ts), the barrel export (index.ts), and type-only files carry no testable logic and are excluded. 'break' is the minimum mutation score that fails the run; the suite currently scores ~85%, so 80 locks in progress with headroom for the known equivalent mutants in deepEqual/fileUtils. Raise it as coverage improves.",
   "packageManager": "npm",
   "testRunner": "vitest",
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
   "coverageAnalysis": "perTest",
   "mutate": [
-    "src/comparison/deepEqual.ts",
-    "src/comparison/fuzzyMatch.ts",
-    "src/scanner/scanConstants.ts",
-    "src/core/computeIssueCount.ts",
-    "src/core/loadConfigFile.ts"
+    "src/**/*.ts",
+    "!src/cli.ts",
+    "!src/index.ts",
+    "!src/types/**",
+    "!src/**/*.d.ts"
   ],
   "ignorePatterns": ["dist", "coverage", ".stryker-tmp"],
   "incremental": true,
   "incrementalFile": ".stryker-tmp/incremental.json",
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": { "fileName": "reports/mutation/index.html" },
-  "thresholds": { "high": 80, "low": 60, "break": 0 }
+  "thresholds": { "high": 90, "low": 80, "break": 80 }
 }

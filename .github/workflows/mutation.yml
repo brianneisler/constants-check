@@ -1,10 +1,9 @@
 name: Mutation Testing
 
-# Mutation testing is slower than unit tests, so it runs as a separate,
-# non-blocking job rather than inside the main CI matrix. It is report-only
-# for now (stryker.config.json sets break: 0): it publishes a score and an
-# HTML report artifact but never fails the build. Raise the break threshold
-# once a baseline is established.
+# Mutation testing is slower than unit tests, so it runs as a separate job on a
+# single Node version rather than inside the main CI matrix. It enforces a
+# minimum mutation score (stryker.config.json sets break: 80) and uploads the
+# HTML report as an artifact. Raise the break threshold as coverage improves.
 
 on:
   pull_request:

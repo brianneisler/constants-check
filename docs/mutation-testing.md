@@ -14,7 +14,7 @@ the difference).
 ## Running locally
 
 ```bash
-npm run test:mutation              # full pilot run
+npm run test:mutation              # full run
 npm run test:mutation:incremental  # only re-test changed code (faster)
 ```
 
@@ -28,59 +28,69 @@ mutants line by line.
 - **TypeScript checker:** `@stryker-mutator/typescript-checker` type-checks each
   mutant first and discards ones that don't compile, so they aren't miscounted
   as survivors.
-- **Config:** `stryker.config.json`.
+- **Config:** `stryker.config.json`. `mutate` covers the whole analysis library
+  (`src/**/*.ts`). The CLI entry (`cli.ts`), the barrel export (`index.ts`), and
+  type-only files are excluded — they carry no testable logic, and mutating
+  arg-parsing/IO glue produces low-value survivors.
 - **CI:** `.github/workflows/mutation.yml` runs on PRs that touch `src/` or
-  tests, as a **separate, non-blocking** job (mutation runs are slow, so they
-  stay out of the main Node 20/22/24 CI matrix). It uploads the HTML report as
-  a build artifact.
+  tests, as a **separate** job (mutation runs are slow, so they stay out of the
+  main Node 20/22/24 matrix). It enforces the score threshold and uploads the
+  HTML report as a build artifact.
 
-## This is a pilot — scope is intentionally small
+## Current score
 
-`mutate` in `stryker.config.json` is **deliberately limited** to the modules
-that already have tests:
+The suite scores **~85%** mutation coverage across the library. Per-file
+highlights:
 
-- `src/comparison/deepEqual.ts`
-- `src/comparison/fuzzyMatch.ts`
-- `src/scanner/scanConstants.ts`
-- `src/core/computeIssueCount.ts`
-- `src/core/loadConfigFile.ts`
+| File                    | Score | Notes                                      |
+| ----------------------- | ----- | ------------------------------------------ |
+| computeIssueCount.ts    | 100%  |                                            |
+| config.ts               | 100%  |                                            |
+| hashUtils.ts            | 100%  | pinned reference hashes                    |
+| scanObjects.ts          | 100%  |                                            |
+| handleIgnoreComments.ts | 97%   |                                            |
+| loadConfigFile.ts       | 96%   |                                            |
+| jsonReporter.ts         | 93%   |                                            |
+| consoleReporter.ts      | 92%   | exact rendered-output assertions           |
+| scanLiterals.ts         | 91%   |                                            |
+| fuzzyMatch.ts           | 90%   | remaining survivors are equivalent mutants |
+| scanConstants.ts        | 88%   |                                            |
+| projectDiscovery.ts     | 86%   |                                            |
+| analyzeDefinitions.ts   | 81%   |                                            |
+| detectTypeContext.ts    | 80%   |                                            |
+| analyzePackage.ts       | 77%   |                                            |
+| deepEqual.ts            | 77%   | remaining survivors are equivalent mutants |
+| analyzeCrossPackage.ts  | 69%   |                                            |
+| analyzeProject.ts       | 64%   | uncovered: error + option-default branches |
+| fileUtils.ts            | 60%   | remaining survivors are equivalent mutants |
 
-Pointing Stryker at all 22 source files while only ~5 have tests would produce a
-flood of survivors and a long runtime that tells us nothing new. Scoping to
-tested code gives a meaningful baseline and shows where *existing* tests are
-weak.
+## Enforcement
 
-### Baseline (first pilot run)
+`stryker.config.json` sets `thresholds.break` to **80** — the mutation job
+fails if the overall score drops below it. The 5-point gap below the current
+~85% absorbs the known equivalent mutants without making CI flaky. Ratchet
+`break` upward as the score climbs.
 
-| File                  | Mutation score |
-| --------------------- | -------------- |
-| computeIssueCount.ts  | 100%           |
-| fuzzyMatch.ts         | 83%            |
-| loadConfigFile.ts     | 76%            |
-| deepEqual.ts          | 57%            |
-| scanConstants.ts      | 10%            |
-| **All pilot files**   | **58%**        |
+## A note on equivalent mutants
 
-Takeaways: `deepEqual`'s tests check results but miss several branches, and
-`scanConstants` has a test file that exercises only a small part of the module.
-These are the first places to strengthen tests.
+Not every surviving mutant is a real test gap. An **equivalent mutant** changes
+the source without changing observable behavior, so no test can kill it. The
+lower-scoring files here are dominated by these:
 
-## Rollout plan
+- **`deepEqual.ts`** — early `===`, `null`, and `undefined` short-circuits mean
+  several downstream type/key checks can be mutated without changing any result
+  (the fall-through path returns the same value).
+- **`fuzzyMatch.ts`** — the `s1 === s2` shortcut shadows the empty-string
+  branches, which are therefore unreachable for distinct inputs.
+- **`fileUtils.ts`** — the `fileExists` guard is redundant with the surrounding
+  `try/catch`: removing it just lets `readFile` throw and be caught, returning
+  the same `null`.
 
-1. **Report-only.** `thresholds.break` is `0` — CI reports the score and
-   publishes the report but never fails. (Stryker v9 requires `break >= 0`, so
-   `0` is the "never break" value.)
-2. **Strengthen the weak pilot files** (`deepEqual`, `scanConstants`) using the
-   surviving-mutant report to guide which assertions/cases to add.
-3. **Ratchet the threshold.** Once a file is solid, raise `thresholds.break`
-   toward the score so regressions fail the build.
-4. **Expand scope.** Add modules to `mutate` as they gain tests — let the
-   mutation report drive *where* to write tests next (scanner, reporter, and the
-   core analysis pipeline are currently untested).
+These are documented rather than chased, so reviewers don't waste effort trying
+to "fix" untestable lines.
 
-## Notes
+## Where to improve next
 
-- `src/cli.ts` and the `commander` argument wiring are intentionally excluded —
-  mutating IO/glue code yields low-value survivors.
-- First full run is on the order of a minute; `incremental: true` keeps repeat
-  runs fast.
+The cleanest remaining gains are in the orchestration layer — `analyzeProject.ts`
+and `analyzeCrossPackage.ts` — where some error-handling and option-default
+branches are still uncovered. Use the surviving-mutant report to target them.
