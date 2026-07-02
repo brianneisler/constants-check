@@ -1,6 +1,6 @@
 {
   "name": "constants-check",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Detect duplicate constants in TypeScript/JavaScript projects and highlight where they exist to drive refactoring",
   "type": "module",
   "main": "./dist/index.js",
