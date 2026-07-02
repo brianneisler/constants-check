@@ -64,19 +64,20 @@ npx constants-check
 
 ## CLI Usage
 
-| Option                      | Description                                 |
-| --------------------------- | ------------------------------------------- |
-| `-c, --check`               | Exit with code 1 when duplicates found (CI) |
-| `-j, --format <format>`     | Output: `console` (default) or `json`       |
-| `-m, --monorepo`            | Analyze monorepo (packages/ or workspaces)  |
-| `--cross-package`           | Cross-package analysis only                 |
-| `-d, --definitions-only`    | Only check duplicate constant definitions   |
-| `-v, --verbose`             | Verbose output                              |
-| `-r, --root <path>`         | Root directory (default: cwd)               |
-| `-p, --paths <paths>`       | Comma-separated directories to scan         |
-| `-f, --files <files>`       | Comma-separated file filter for results     |
-| `--package-priority <pkgs>` | Consolidation priority (comma-separated)    |
-| `--threshold <n>`           | Max allowed issue count under `--check`     |
+| Option                             | Description                                            |
+| ---------------------------------- | ------------------------------------------------------ |
+| `-c, --check`                      | Exit with code 1 when duplicates found (CI)            |
+| `-j, --format <format>`            | Output: `console` (default) or `json`                  |
+| `-m, --monorepo`                   | Analyze monorepo (packages/ or workspaces)             |
+| `--cross-package`                  | Cross-package analysis only                            |
+| `--cross-package-definitions-only` | Only report duplicate definitions that span >1 package |
+| `-d, --definitions-only`           | Only check duplicate constant definitions              |
+| `-v, --verbose`                    | Verbose output                                         |
+| `-r, --root <path>`                | Root directory (default: cwd)                          |
+| `-p, --paths <paths>`              | Comma-separated directories to scan                    |
+| `-f, --files <files>`              | Comma-separated file filter for results                |
+| `--package-priority <pkgs>`        | Consolidation priority (comma-separated)               |
+| `--threshold <n>`                  | Max allowed issue count under `--check`                |
 
 ## Configuration File
 

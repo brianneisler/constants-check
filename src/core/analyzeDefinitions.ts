@@ -10,7 +10,7 @@ import type {
 import { deepEqual } from '../comparison/deepEqual.js';
 import { areNamesSimilar } from '../comparison/fuzzyMatch.js';
 import { hashObjectStructure } from './hashUtils.js';
-import { MIN_DEFINITION_DUPLICATION, CROSS_PACKAGE_ONLY } from './config.js';
+import { MIN_DEFINITION_DUPLICATION } from './config.js';
 
 function getPropertyName(fullPath: string): string {
   const parts = fullPath.split('.');
@@ -34,10 +34,13 @@ function getRecommendedPackage(packages: string[], priorityList: string[] = []):
   return packages.sort()[0];
 }
 
-function shouldReportDefinitions(definitions: ConstantDefinition[]): boolean {
+function shouldReportDefinitions(
+  definitions: ConstantDefinition[],
+  crossPackageOnly: boolean
+): boolean {
   if (definitions.length < MIN_DEFINITION_DUPLICATION) return false;
 
-  if (CROSS_PACKAGE_ONLY) {
+  if (crossPackageOnly) {
     const packages = new Set(definitions.map((def) => def.packageName));
     return packages.size > 1;
   }
@@ -176,13 +179,14 @@ function combineAllDefinitions(
 
 function findDuplicateNames(
   allDefinitions: ConstantDefinition[],
-  packagePriority: string[] = []
+  packagePriority: string[] = [],
+  crossPackageOnly = false
 ): DuplicateDefinitionGroup[] {
   const fuzzyGroups = groupByFuzzyNameAndValue(allDefinitions);
   const duplicateNames: DuplicateDefinitionGroup[] = [];
 
   for (const [name, definitions] of fuzzyGroups.entries()) {
-    if (shouldReportDefinitions(definitions)) {
+    if (shouldReportDefinitions(definitions, crossPackageOnly)) {
       duplicateNames.push(createDuplicateGroup(name, definitions, packagePriority));
     }
   }
@@ -202,6 +206,8 @@ function collectAffectedPackages(groups: DuplicateDefinitionGroup[]): string[] {
 
 export interface AnalyzeDefinitionsOptions {
   packagePriority?: string[];
+  /** Only report duplicate definitions that span more than one package. */
+  crossPackageOnly?: boolean;
 }
 
 export function analyzeDuplicateDefinitions(
@@ -209,9 +215,13 @@ export function analyzeDuplicateDefinitions(
   numberConstants: Map<string, ConstantDefinition[]>,
   options: AnalyzeDefinitionsOptions = {}
 ): DuplicateDefinitionsResult {
-  const { packagePriority = [] } = options;
+  const { packagePriority = [], crossPackageOnly = false } = options;
   const allDefinitions = combineAllDefinitions(stringConstants, numberConstants);
-  const duplicateDefinitions = findDuplicateNames(allDefinitions, packagePriority);
+  const duplicateDefinitions = findDuplicateNames(
+    allDefinitions,
+    packagePriority,
+    crossPackageOnly
+  );
 
   return {
     affectedPackages: collectAffectedPackages(duplicateDefinitions),

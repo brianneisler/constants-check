@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm, writeFile } from 'fs/promises';
+import { mkdtemp, mkdir, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { loadConfigFile, CONFIG_FILE_NAME } from '../../src/core/loadConfigFile.js';
@@ -23,6 +23,7 @@ describe('loadConfigFile', () => {
     const cfg = {
       monorepo: true,
       crossPackage: false,
+      crossPackageDefinitionsOnly: true,
       definitionsOnly: true,
       verbose: false,
       format: 'json',
@@ -105,6 +106,64 @@ describe('loadConfigFile', () => {
 
     expect(await loadConfigFile(dir)).toBeNull();
     expect(spy).toHaveBeenCalledOnce();
+
+    spy.mockRestore();
+  });
+
+  it('accepts zero as a valid integer for numeric fields (>= 0 boundary)', async () => {
+    await writeFile(
+      join(dir, CONFIG_FILE_NAME),
+      JSON.stringify({ threshold: 0, minDuplication: 0, minStringLength: 0 }),
+      'utf8'
+    );
+    expect(await loadConfigFile(dir)).toEqual({
+      threshold: 0,
+      minDuplication: 0,
+      minStringLength: 0,
+    });
+  });
+
+  it("accepts format 'console'", async () => {
+    await writeFile(join(dir, CONFIG_FILE_NAME), JSON.stringify({ format: 'console' }), 'utf8');
+    expect(await loadConfigFile(dir)).toEqual({ format: 'console' });
+  });
+
+  it('drops string-array fields that contain a non-string element', async () => {
+    await writeFile(
+      join(dir, CONFIG_FILE_NAME),
+      JSON.stringify({ paths: ['ok', 123], files: ['fine'] }),
+      'utf8'
+    );
+    expect(await loadConfigFile(dir)).toEqual({ files: ['fine'] });
+  });
+
+  it('returns null and warns when the file cannot be read', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Make the config path a directory so readFile fails with EISDIR.
+    await mkdir(join(dir, CONFIG_FILE_NAME));
+
+    expect(await loadConfigFile(dir)).toBeNull();
+    expect(spy).toHaveBeenCalledOnce();
+    expect(spy.mock.calls[0]?.[0]).toContain('Failed to read');
+
+    spy.mockRestore();
+  });
+
+  it('returns null and warns when top-level JSON is null', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await writeFile(join(dir, CONFIG_FILE_NAME), 'null', 'utf8');
+
+    expect(await loadConfigFile(dir)).toBeNull();
+    expect(spy).toHaveBeenCalledOnce();
+
+    spy.mockRestore();
+  });
+
+  it('returns null when top-level JSON is a number', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await writeFile(join(dir, CONFIG_FILE_NAME), '42', 'utf8');
+
+    expect(await loadConfigFile(dir)).toBeNull();
 
     spy.mockRestore();
   });
