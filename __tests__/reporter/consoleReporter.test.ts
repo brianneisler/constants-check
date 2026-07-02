@@ -55,9 +55,11 @@ const header = `\n${SEP}\n  Pkg - Constants Report\n${SEP}`;
 
 describe('printPackageResults', () => {
   it('renders a skipped package exactly', () => {
-    expect(capture(() => printPackageResults(result({ skipped: true, skipReason: 'No source files found' })))).toBe(
-      `${header}\n[CONSTANTS] Skipped: No source files found`
-    );
+    expect(
+      capture(() =>
+        printPackageResults(result({ skipped: true, skipReason: 'No source files found' }))
+      )
+    ).toBe(`${header}\n[CONSTANTS] Skipped: No source files found`);
   });
 
   it('renders a no-source package exactly', () => {
@@ -172,7 +174,14 @@ describe('printPackageResults', () => {
                 value: { a: 1, b: 2 },
                 valueType: 'object',
                 definitions: [
-                  { name: 'CFG', value: 'x', file: 'a.ts', line: 1, packageName: 'pkg', fullPath: 'CFG' },
+                  {
+                    name: 'CFG',
+                    value: 'x',
+                    file: 'a.ts',
+                    line: 1,
+                    packageName: 'pkg',
+                    fullPath: 'CFG',
+                  },
                 ],
                 packages: ['pkg'],
                 recommendedPackage: 'pkg',
@@ -191,7 +200,11 @@ describe('printConstantsSummary', () => {
     const withDupes = result({
       success: false,
       stringFindings: [stringFinding('hello')],
-      duplicateDefinitions: { totalDuplicates: 2, affectedPackages: ['pkg'], duplicateDefinitions: [] },
+      duplicateDefinitions: {
+        totalDuplicates: 2,
+        affectedPackages: ['pkg'],
+        duplicateDefinitions: [],
+      },
     });
     const out = capture(() => printConstantsSummary([withDupes], 'all'));
     expect(out).toBe(

@@ -89,9 +89,7 @@ describe('hasIgnoreNextLineComment', () => {
   });
 
   it('returns false when the ignore comment is two lines above', () => {
-    const node = firstVariableStatement(
-      '// constants-ignore-next-line\n\nconst A = 1;'
-    );
+    const node = firstVariableStatement('// constants-ignore-next-line\n\nconst A = 1;');
     expect(hasIgnoreNextLineComment(node)).toBe(false);
   });
 

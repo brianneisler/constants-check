@@ -94,7 +94,74 @@ export function isImportOrExport(node: Node): boolean {
   const isImport = Node.isImportDeclaration(parent) || Node.isImportSpecifier(parent);
   const isExport = Node.isExportDeclaration(parent) || Node.isExportSpecifier(parent);
   const isExternalModule = Node.isExternalModuleReference(parent);
-  return isImport || isExport || isExternalModule;
+  return isImport || isExport || isExternalModule || isModuleSpecifierArgument(node);
+}
+
+/**
+ * Test-runner mocking helpers whose module-path argument must be a static
+ * string literal. These APIs are hoisted and/or resolve the path statically,
+ * so the argument cannot be replaced with a variable/constant reference.
+ *
+ * Keyed by the receiver object (`vi` for vitest, `jest` for jest).
+ */
+const MODULE_PATH_MOCK_METHODS = new Map<string, Set<string>>([
+  ['vi', new Set(['mock', 'doMock', 'unmock', 'doUnmock', 'importActual', 'importMock'])],
+  [
+    'jest',
+    new Set([
+      'mock',
+      'doMock',
+      'unmock',
+      'dontMock',
+      'setMock',
+      'requireActual',
+      'requireMock',
+      'createMockFromModule',
+      'genMockFromModule',
+    ]),
+  ],
+]);
+
+/**
+ * Detects module specifier literals passed to dynamic `import('...')`,
+ * `require('...')`, or test-runner mock helpers such as `vi.mock('...')` /
+ * `jest.mock('...')`. These are module paths, not reusable constants, so they
+ * should never be reported as duplicate literals — and for the mock helpers the
+ * argument is required to be a literal and cannot be extracted to a variable.
+ */
+function isModuleSpecifierArgument(node: Node): boolean {
+  const parent = node.getParent();
+  if (!Node.isCallExpression(parent)) {
+    return false;
+  }
+
+  // The literal must be the (first) call argument, not some other position.
+  if (parent.getArguments()[0] !== node) {
+    return false;
+  }
+
+  const expression = parent.getExpression();
+
+  // Dynamic import: import('...')
+  if (expression.getKind() === SyntaxKind.ImportKeyword) {
+    return true;
+  }
+
+  // CommonJS require: require('...')
+  if (Node.isIdentifier(expression) && expression.getText() === 'require') {
+    return true;
+  }
+
+  // Mock helpers: vi.mock('...'), jest.mock('...'), etc.
+  if (Node.isPropertyAccessExpression(expression)) {
+    const receiver = expression.getExpression();
+    const methods = Node.isIdentifier(receiver)
+      ? MODULE_PATH_MOCK_METHODS.get(receiver.getText())
+      : undefined;
+    return methods?.has(expression.getName()) ?? false;
+  }
+
+  return false;
 }
 
 export function isPropertyKey(node: Node): boolean {

@@ -88,7 +88,11 @@ describe('runConstantsAnalyzer', () => {
     await mkdir(join(pkgA, 'src'), { recursive: true });
     await writeFile(join(pkgA, 'package.json'), JSON.stringify({ name: 'pkg-a' }), 'utf8');
     await writeFile(join(pkgA, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }), 'utf8');
-    await writeFile(join(pkgA, 'src', 'a.ts'), `export const ONLY_A = 'aaa-unique-value';\n`, 'utf8');
+    await writeFile(
+      join(pkgA, 'src', 'a.ts'),
+      `export const ONLY_A = 'aaa-unique-value';\n`,
+      'utf8'
+    );
 
     const { results } = await runConstantsAnalyzer({ root, monorepo: true });
 

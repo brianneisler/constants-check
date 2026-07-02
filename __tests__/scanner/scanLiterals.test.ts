@@ -65,9 +65,75 @@ describe('scanStrings', () => {
 
   it('captures the trimmed source line as the location code', () => {
     const counts = scan(`  const a = 'hello'; let b = 'hello';`);
-    expect(counts.get('hello')!.locations[0].code).toBe(
-      `const a = 'hello'; let b = 'hello';`
-    );
+    expect(counts.get('hello')!.locations[0].code).toBe(`const a = 'hello'; let b = 'hello';`);
+  });
+
+  describe('module specifier literals are not counted as constants', () => {
+    it('skips re-export module specifiers', () => {
+      const counts = scan(`export { a } from 'my-module';\nexport * from 'my-module';`);
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('skips import-equals require module specifiers', () => {
+      const counts = scan(`import a = require('my-module');\nimport b = require('my-module');`);
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('skips dynamic import() module specifiers', () => {
+      const counts = scan(`const a = import('my-module');\nconst b = import('my-module');`);
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('skips require() call module specifiers', () => {
+      const counts = scan(`const a = require('my-module');\nconst b = require('my-module');`);
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('skips vi.mock() module specifiers', () => {
+      const counts = scan(`vi.mock('my-module');\nvi.mock('my-module', () => ({}));`);
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('skips jest.mock() module specifiers', () => {
+      const counts = scan(`jest.mock('my-module');\njest.mock('my-module', () => ({}));`);
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('skips other vi/jest module-path helpers', () => {
+      const counts = scan(
+        [
+          `vi.importActual('my-module');`,
+          `vi.unmock('my-module');`,
+          `jest.requireActual('my-module');`,
+          `jest.setMock('my-module', {});`,
+        ].join('\n')
+      );
+      expect(counts.has('my-module')).toBe(false);
+    });
+  });
+
+  describe('genuine duplicate strings are still counted', () => {
+    it('still counts string args to non-module vi/jest methods', () => {
+      // vi.setConfig / jest.setTimeout are not module-path helpers, so a literal
+      // here is a genuine value and should still be reported.
+      const counts = scan(`vi.setConfig('shared-value');\njest.setTimeout('shared-value');`);
+      expect(counts.get('shared-value')!.count).toBe(2);
+    });
+
+    it('still counts .mock() calls on unrelated receivers', () => {
+      // Only vi/jest receivers are module-path helpers; other objects are not.
+      const counts = scan(`service.mock('shared-value');\nother.mock('shared-value');`);
+      expect(counts.get('shared-value')!.count).toBe(2);
+    });
+
+    it('counts a string that only coincidentally shares a module name', () => {
+      // The literal here is a plain string argument, not a module specifier,
+      // so it should still be reported even though it equals a dynamic import.
+      const counts = scan(
+        `const a = import('my-module');\nconst b = 'my-module';\nconst c = 'my-module';`
+      );
+      expect(counts.get('my-module')!.count).toBe(2);
+    });
   });
 });
 

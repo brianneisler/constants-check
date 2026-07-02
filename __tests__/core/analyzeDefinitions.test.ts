@@ -35,10 +35,7 @@ describe('analyzeDuplicateDefinitions', () => {
 
   it('does not group constants with different values', () => {
     const result = analyzeDuplicateDefinitions(
-      stringMap(
-        def({ name: 'TIMEOUT', value: 'a' }),
-        def({ name: 'TIMEOUT', value: 'b' })
-      ),
+      stringMap(def({ name: 'TIMEOUT', value: 'a' }), def({ name: 'TIMEOUT', value: 'b' })),
       empty
     );
     expect(result.totalDuplicates).toBe(0);
@@ -163,10 +160,7 @@ describe('analyzeDuplicateDefinitions', () => {
 
   it('classifies string-valued groups', () => {
     const result = analyzeDuplicateDefinitions(
-      stringMap(
-        def({ name: 'GREETING', value: 'hi' }),
-        def({ name: 'GREETINGS', value: 'hi' })
-      ),
+      stringMap(def({ name: 'GREETING', value: 'hi' }), def({ name: 'GREETINGS', value: 'hi' })),
       empty
     );
     expect(result.duplicateDefinitions[0].valueType).toBe('string');
@@ -176,10 +170,7 @@ describe('analyzeDuplicateDefinitions', () => {
   it('classifies number-valued groups', () => {
     const result = analyzeDuplicateDefinitions(
       empty,
-      stringMap(
-        def({ name: 'PORT_NUMBER', value: 8080 }),
-        def({ name: 'PORT_NUM', value: 8080 })
-      )
+      stringMap(def({ name: 'PORT_NUMBER', value: 8080 }), def({ name: 'PORT_NUM', value: 8080 }))
     );
     expect(result.duplicateDefinitions[0].valueType).toBe('number');
   });

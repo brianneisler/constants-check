@@ -2,10 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, mkdir, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import {
-  discoverProjects,
-  getSingleProjectInfo,
-} from '../../src/core/projectDiscovery.js';
+import { discoverProjects, getSingleProjectInfo } from '../../src/core/projectDiscovery.js';
 
 async function writePackage(pkgDir: string, contents: object | null): Promise<void> {
   await mkdir(pkgDir, { recursive: true });
@@ -61,11 +58,7 @@ describe('discoverProjects', () => {
   });
 
   it('discovers workspaces declared as an array', async () => {
-    await writeFile(
-      join(dir, 'package.json'),
-      JSON.stringify({ workspaces: ['apps/*'] }),
-      'utf8'
-    );
+    await writeFile(join(dir, 'package.json'), JSON.stringify({ workspaces: ['apps/*'] }), 'utf8');
     await writePackage(join(dir, 'apps', 'web'), { name: 'web-app' });
 
     const projects = await discoverProjects(dir);

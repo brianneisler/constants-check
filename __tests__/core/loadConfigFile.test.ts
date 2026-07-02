@@ -124,11 +124,7 @@ describe('loadConfigFile', () => {
   });
 
   it("accepts format 'console'", async () => {
-    await writeFile(
-      join(dir, CONFIG_FILE_NAME),
-      JSON.stringify({ format: 'console' }),
-      'utf8'
-    );
+    await writeFile(join(dir, CONFIG_FILE_NAME), JSON.stringify({ format: 'console' }), 'utf8');
     expect(await loadConfigFile(dir)).toEqual({ format: 'console' });
   });
 

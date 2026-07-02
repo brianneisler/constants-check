@@ -19,7 +19,7 @@ describe('resolveThresholdStatus', () => {
     expect(resolveThresholdStatus(5, 5)).toBe('at');
   });
 
-  it("treats threshold of 0 as configured", () => {
+  it('treats threshold of 0 as configured', () => {
     expect(resolveThresholdStatus(0, 0)).toBe('at');
     expect(resolveThresholdStatus(1, 0)).toBe('over');
   });
