@@ -53,6 +53,30 @@ describe('scanStrings', () => {
       );
       expect(counts.has('my-module')).toBe(false);
     });
+
+    it('ignores vi.mock() module specifiers', () => {
+      const counts = scanStringLiterals(`vi.mock('my-module');\nvi.mock('my-module', () => ({}));`);
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('ignores jest.mock() module specifiers', () => {
+      const counts = scanStringLiterals(
+        `jest.mock('my-module');\njest.mock('my-module', () => ({}));`
+      );
+      expect(counts.has('my-module')).toBe(false);
+    });
+
+    it('ignores other vi/jest module-path helpers', () => {
+      const counts = scanStringLiterals(
+        [
+          `vi.importActual('my-module');`,
+          `vi.unmock('my-module');`,
+          `jest.requireActual('my-module');`,
+          `jest.setMock('my-module', {});`,
+        ].join('\n')
+      );
+      expect(counts.has('my-module')).toBe(false);
+    });
   });
 
   describe('genuine duplicate string literals are still counted', () => {
@@ -61,6 +85,23 @@ describe('scanStrings', () => {
         `const a = 'duplicate-value';\nconst b = 'duplicate-value';`
       );
       expect(counts.get('duplicate-value')?.count).toBe(2);
+    });
+
+    it('still counts string args to non-module vi/jest methods', () => {
+      // vi.fn / jest.setTimeout are not module-path helpers, so a literal here
+      // is a genuine value and should still be reported.
+      const counts = scanStringLiterals(
+        `vi.setConfig('shared-value');\njest.setTimeout('shared-value');`
+      );
+      expect(counts.get('shared-value')?.count).toBe(2);
+    });
+
+    it('still counts .mock() calls on unrelated receivers', () => {
+      // Only vi/jest receivers are module-path helpers; other objects are not.
+      const counts = scanStringLiterals(
+        `service.mock('shared-value');\nother.mock('shared-value');`
+      );
+      expect(counts.get('shared-value')?.count).toBe(2);
     });
 
     it('counts a string that only coincidentally shares a module name', () => {
