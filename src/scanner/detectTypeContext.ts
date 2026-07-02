@@ -164,6 +164,66 @@ function isModuleSpecifierArgument(node: Node): boolean {
   return false;
 }
 
+/**
+ * Global functions from test frameworks (vitest, jest, jasmine, mocha) whose
+ * first argument is a human-readable suite/test label rather than a reusable
+ * value. Includes the `x`/`f` prefixed skip/focus aliases.
+ */
+const TEST_BLOCK_IDENTIFIERS = new Set([
+  'describe',
+  'it',
+  'test',
+  'suite',
+  'bench',
+  'xdescribe',
+  'xit',
+  'xtest',
+  'fdescribe',
+  'fit',
+  'ftest',
+]);
+
+/**
+ * Resolve the root identifier of a call target, unwrapping member modifiers and
+ * chained calls. For example the root of `it`, `it.only`, `it.skip.each`, and
+ * `it.each(cases)` is all `it`. Returns undefined when the target is not rooted
+ * in a plain identifier.
+ */
+function getCallRootIdentifier(expression: Node): string | undefined {
+  if (Node.isIdentifier(expression)) {
+    return expression.getText();
+  }
+  if (Node.isPropertyAccessExpression(expression)) {
+    return getCallRootIdentifier(expression.getExpression());
+  }
+  if (Node.isCallExpression(expression)) {
+    return getCallRootIdentifier(expression.getExpression());
+  }
+  return undefined;
+}
+
+/**
+ * Detects the label literal of a test-framework block such as `it('...')`,
+ * `describe('...')`, `test.only('...')`, or `it.each(cases)('...')`. These are
+ * test/suite descriptions, not reusable constants, so they should not be
+ * reported as duplicate literals. Only the first argument (the label) matches —
+ * strings inside the callback body are untouched.
+ */
+export function isTestBlockLabel(node: Node): boolean {
+  const parent = node.getParent();
+  if (!Node.isCallExpression(parent)) {
+    return false;
+  }
+
+  // The literal must be the (first) call argument — the label position.
+  if (parent.getArguments()[0] !== node) {
+    return false;
+  }
+
+  const root = getCallRootIdentifier(parent.getExpression());
+  return root !== undefined && TEST_BLOCK_IDENTIFIERS.has(root);
+}
+
 export function isPropertyKey(node: Node): boolean {
   const parent = node.getParent();
   if (Node.isPropertyAssignment(parent)) {
