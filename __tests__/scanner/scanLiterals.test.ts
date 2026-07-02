@@ -112,6 +112,41 @@ describe('scanStrings', () => {
     });
   });
 
+  describe('test framework labels are not counted as constants', () => {
+    it('skips duplicate it() labels', () => {
+      const counts = scan(`it('shared label', () => {});\nit('shared label', () => {});`);
+      expect(counts.has('shared label')).toBe(false);
+    });
+
+    it('skips duplicate describe() labels', () => {
+      const counts = scan(
+        `describe('shared label', () => {});\ndescribe('shared label', () => {});`
+      );
+      expect(counts.has('shared label')).toBe(false);
+    });
+
+    it('skips modifier and each-table label forms', () => {
+      const counts = scan(
+        [
+          `test.only('shared label', () => {});`,
+          `it.skip('shared label', () => {});`,
+          `it.each(cases)('shared label', () => {});`,
+        ].join('\n')
+      );
+      expect(counts.has('shared label')).toBe(false);
+    });
+
+    it('still counts duplicate strings inside a test body', () => {
+      // The label is skipped, but a genuine duplicate value in the callback body
+      // is still a real finding.
+      const counts = scan(
+        `it('label', () => {\n  const a = 'shared-value';\n  const b = 'shared-value';\n});`
+      );
+      expect(counts.has('label')).toBe(false);
+      expect(counts.get('shared-value')!.count).toBe(2);
+    });
+  });
+
   describe('genuine duplicate strings are still counted', () => {
     it('still counts string args to non-module vi/jest methods', () => {
       // vi.setConfig / jest.setTimeout are not module-path helpers, so a literal

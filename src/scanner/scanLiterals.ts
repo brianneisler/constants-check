@@ -25,6 +25,7 @@ import {
   isImportOrExport,
   isPropertyKey,
   isLikelyArrayIndex,
+  isTestBlockLabel,
 } from './detectTypeContext.js';
 
 function sortConstantSuggestions(suggestions: ConstantDefinition[]): ConstantDefinition[] {
@@ -71,6 +72,7 @@ export function scanStrings(
 
     if (text.length < config.minStringLength) return;
     if (isImportOrExport(node)) return;
+    if (isTestBlockLabel(node)) return;
     if (isPropertyKey(node)) return;
     if (isTypeLiteral(node)) return;
     if (isTypeofSentinel(node, text)) return;

@@ -6,6 +6,7 @@ import {
   isImportOrExport,
   isPropertyKey,
   isLikelyArrayIndex,
+  isTestBlockLabel,
 } from '../../src/scanner/detectTypeContext.js';
 import { firstOfKind } from '../helpers/tsMorph.js';
 
@@ -99,6 +100,54 @@ describe('isPropertyKey', () => {
 
   it('is false for a property value', () => {
     expect(isPropertyKey(stringLiteral(`const o = { k: 'value' };`))).toBe(false);
+  });
+});
+
+describe('isTestBlockLabel', () => {
+  it('is true for an it() label', () => {
+    expect(isTestBlockLabel(stringLiteral(`it('adds numbers', () => {});`))).toBe(true);
+  });
+
+  it('is true for a describe() label', () => {
+    expect(isTestBlockLabel(stringLiteral(`describe('a suite', () => {});`))).toBe(true);
+  });
+
+  it('is true for a test() label', () => {
+    expect(isTestBlockLabel(stringLiteral(`test('does a thing', () => {});`))).toBe(true);
+  });
+
+  it('is true for a modifier form like test.only()', () => {
+    expect(isTestBlockLabel(stringLiteral(`test.only('focused', () => {});`))).toBe(true);
+  });
+
+  it('is true for a skip modifier like it.skip()', () => {
+    expect(isTestBlockLabel(stringLiteral(`it.skip('later', () => {});`))).toBe(true);
+  });
+
+  it('is true for an each table form like it.each(cases)()', () => {
+    expect(isTestBlockLabel(stringLiteral(`it.each(cases)('case %s', () => {});`))).toBe(true);
+  });
+
+  it('is true for x/f prefixed aliases', () => {
+    expect(isTestBlockLabel(stringLiteral(`xit('pending', () => {});`))).toBe(true);
+    expect(isTestBlockLabel(stringLiteral(`fdescribe('focused', () => {});`))).toBe(true);
+  });
+
+  it('is false for a string that is not the first argument', () => {
+    // The label is the second string here; only the first argument is a label.
+    expect(isTestBlockLabel(stringLiteral(`it(names[0], 'not a label');`))).toBe(false);
+  });
+
+  it('is false for a call to an unrelated function', () => {
+    expect(isTestBlockLabel(stringLiteral(`log('a message');`))).toBe(false);
+  });
+
+  it('is false for a method call on an unrelated receiver', () => {
+    expect(isTestBlockLabel(stringLiteral(`router.describe('a route');`))).toBe(false);
+  });
+
+  it('is false for a plain string literal', () => {
+    expect(isTestBlockLabel(stringLiteral(`const x = 'value';`))).toBe(false);
   });
 });
 
