@@ -64,20 +64,21 @@ npx constants-check
 
 ## CLI Usage
 
-| Option                             | Description                                            |
-| ---------------------------------- | ------------------------------------------------------ |
-| `-c, --check`                      | Exit with code 1 when duplicates found (CI)            |
-| `-j, --format <format>`            | Output: `console` (default) or `json`                  |
-| `-m, --monorepo`                   | Analyze monorepo (packages/ or workspaces)             |
-| `--cross-package`                  | Cross-package analysis only                            |
-| `--cross-package-definitions-only` | Only report duplicate definitions that span >1 package |
-| `-d, --definitions-only`           | Only check duplicate constant definitions              |
-| `-v, --verbose`                    | Verbose output                                         |
-| `-r, --root <path>`                | Root directory (default: cwd)                          |
-| `-p, --paths <paths>`              | Comma-separated directories to scan                    |
-| `-f, --files <files>`              | Comma-separated file filter for results                |
-| `--package-priority <pkgs>`        | Consolidation priority (comma-separated)               |
-| `--threshold <n>`                  | Max allowed issue count under `--check`                |
+| Option                             | Description                                             |
+| ---------------------------------- | ------------------------------------------------------- |
+| `-c, --check`                      | Exit with code 1 when duplicates found (CI)             |
+| `-j, --format <format>`            | Output: `console` (default) or `json`                   |
+| `-m, --monorepo`                   | Analyze monorepo (packages/ or workspaces)              |
+| `--cross-package`                  | Cross-package analysis only                             |
+| `--cross-package-definitions-only` | Only report duplicate definitions that span >1 package  |
+| `-d, --definitions-only`           | Only check duplicate constant definitions               |
+| `-v, --verbose`                    | Verbose output                                          |
+| `-r, --root <path>`                | Root directory (default: cwd)                           |
+| `-p, --paths <paths>`              | Comma-separated directories to scan                     |
+| `-f, --files <files>`              | Comma-separated file filter for results                 |
+| `--package-priority <pkgs>`        | Consolidation priority (comma-separated)                |
+| `-i, --ignore <patterns>`          | Comma-separated globs to skip (adds to config `ignore`) |
+| `--threshold <n>`                  | Max allowed issue count under `--check`                 |
 
 ## Configuration File
 
@@ -92,6 +93,7 @@ each run. Any field is optional. Unknown keys are ignored.
   "format": "console",
   "paths": ["packages/core/src", "packages/utils/src"],
   "packagePriority": ["@scope/core", "@scope/utils"],
+  "ignore": ["**/cdk.out/**", "**/dist/**"],
   "ignoreNumbers": [0, 1, 2, -1, 10, 100],
   "minDuplication": 2,
   "minStringLength": 3,
@@ -101,7 +103,30 @@ each run. Any field is optional. Unknown keys are ignored.
 
 **Precedence:** CLI flag > `constants.config.json` > built-in default. So a
 config file can set the project baseline while individual runs override it
-with one-off CLI flags.
+with one-off CLI flags. `ignore` is the exception: `--ignore` patterns are
+added to the config file's list rather than replacing it, so a one-off run
+cannot drop the project's exclusions.
+
+## Ignoring Directories
+
+`ignore` takes glob patterns, relative to the root, for files that are never
+read at all — build output, generated code, staged copies of your sources.
+They are excluded when files are collected, before anything is parsed, so an
+ignored tree costs neither time nor memory.
+
+This matters in a monorepo: the cross-package scan reads every `src`
+directory under `packages/`, at any depth. Build tooling that copies sources
+under a package — a CDK `cdk.out` stages a copy of each Lambda asset, `src/`
+included — would otherwise be parsed and counted as duplicates of the real
+code.
+
+```json
+{
+  "ignore": ["**/cdk.out/**", "**/.react-router/**"]
+}
+```
+
+`node_modules` and `.d.ts` files are always excluded and need no pattern.
 
 ## Threshold Mode
 

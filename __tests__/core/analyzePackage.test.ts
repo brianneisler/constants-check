@@ -65,6 +65,25 @@ describe('analyzePackageConstants', () => {
     expect(result.stringFindings).toHaveLength(0);
   });
 
+  it('never collects files under an ignored pattern', async () => {
+    await src('a.ts', `export function a() { return use('built-copy-value'); }\n`);
+    const built = join(dir, 'cdk.out', 'asset.abc123');
+    await mkdir(built, { recursive: true });
+    await writeFile(
+      join(built, 'a.ts'),
+      `export function a() { return use('built-copy-value'); }\n`,
+      'utf8'
+    );
+
+    const unignored = await analyzePackageConstants(dir, dir, 'pkg', 'Pkg');
+    expect(unignored.stringFindings.map((f) => f.value)).toContain('built-copy-value');
+
+    const ignored = await analyzePackageConstants(dir, dir, 'pkg', 'Pkg', {
+      ignore: ['**/cdk.out/**'],
+    });
+    expect(ignored.stringFindings.map((f) => f.value)).not.toContain('built-copy-value');
+  });
+
   it('detects duplicate string literals across files', async () => {
     await src('a.ts', `export function a() { return use('shared-literal-value'); }\n`);
     await src('b.ts', `export function b() { return use('shared-literal-value'); }\n`);

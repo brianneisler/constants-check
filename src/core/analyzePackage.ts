@@ -17,6 +17,7 @@ import { scanConstants } from '../scanner/scanConstants.js';
 import { scanStrings, scanNumbers, convertToFindings } from '../scanner/scanLiterals.js';
 import { analyzeDuplicateDefinitions } from './analyzeDefinitions.js';
 import { DEFAULT_CONFIG } from './config.js';
+import { buildSourceGlobs } from './sourceGlobs.js';
 
 const NODE_MODULES = 'node_modules';
 const TYPE_DEFINITION_EXT = '.d.ts';
@@ -89,6 +90,8 @@ export interface AnalyzePackageOptions {
   definitionsOnly?: boolean;
   packagePriority?: string[];
   crossPackageDefinitionsOnly?: boolean;
+  /** Glob patterns, relative to `projectRoot`, whose files are never collected */
+  ignore?: readonly string[];
 }
 
 export async function analyzePackageConstants(
@@ -103,6 +106,7 @@ export async function analyzePackageConstants(
     definitionsOnly = false,
     packagePriority = [],
     crossPackageDefinitionsOnly = false,
+    ignore = [],
   } = options;
 
   const srcPath = path.join(projectPath, 'src');
@@ -114,12 +118,18 @@ export async function analyzePackageConstants(
       skipAddingFilesFromTsConfig: true,
       tsConfigFilePath: tsconfigPath,
     });
-    project.addSourceFilesAtPaths([
-      `${srcPath}/**/*.ts`,
-      `${srcPath}/**/*.tsx`,
-      `${projectPath}/**/*.ts`,
-      `${projectPath}/**/*.tsx`,
-    ]);
+    project.addSourceFilesAtPaths(
+      buildSourceGlobs(
+        [
+          `${srcPath}/**/*.ts`,
+          `${srcPath}/**/*.tsx`,
+          `${projectPath}/**/*.ts`,
+          `${projectPath}/**/*.tsx`,
+        ],
+        projectRoot,
+        ignore
+      )
+    );
   } catch {
     return createSkippedResult(packageName, displayName, 'Could not initialize ts-morph project');
   }

@@ -29,6 +29,8 @@ export interface ConstantsAnalyzerOptions {
   packagePriority?: string[];
   /** Only report duplicate definitions that span more than one package */
   crossPackageDefinitionsOnly?: boolean;
+  /** Glob patterns, relative to `root`, whose files are never collected or scanned */
+  ignore?: string[];
 }
 
 export interface ConstantsAnalyzerResult {
@@ -51,6 +53,7 @@ export async function runConstantsAnalyzer(
   const config = options.config ?? {};
   const packagePriority = options.packagePriority ?? [];
   const crossPackageDefinitionsOnly = options.crossPackageDefinitionsOnly ?? false;
+  const ignore = options.ignore ?? [];
 
   const mergedConfig = {
     ignoreNumbers: config.ignoreNumbers ?? [0, 1, 2, -1, 10, 100],
@@ -64,6 +67,7 @@ export async function runConstantsAnalyzer(
       definitionsOnly,
       packagePriority,
       crossPackageDefinitionsOnly,
+      ignore,
     });
     return {
       results: [result],
@@ -109,6 +113,7 @@ export async function runConstantsAnalyzer(
           definitionsOnly,
           packagePriority,
           crossPackageDefinitionsOnly,
+          ignore,
         }
       );
       results.push(result);
@@ -135,6 +140,7 @@ export async function runConstantsAnalyzer(
       definitionsOnly,
       packagePriority,
       crossPackageDefinitionsOnly,
+      ignore,
     });
     results.push(crossResult);
     if (!crossResult.success) analysisFailure = true;

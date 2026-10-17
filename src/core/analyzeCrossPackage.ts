@@ -17,6 +17,7 @@ import { scanStrings, scanNumbers, convertToFindings } from '../scanner/scanLite
 import { analyzeDuplicateDefinitions } from './analyzeDefinitions.js';
 import { createSkippedResult, shouldSkipFile } from './analyzePackage.js';
 import { DEFAULT_CONFIG } from './config.js';
+import { buildSourceGlobs } from './sourceGlobs.js';
 
 const CROSS_PACKAGE_NAME = 'cross-package';
 const CROSS_PACKAGE_DISPLAY_NAME = 'Cross-Package Analysis';
@@ -70,6 +71,8 @@ export interface AnalyzeCrossPackageOptions {
   definitionsOnly?: boolean;
   packagePriority?: string[];
   crossPackageDefinitionsOnly?: boolean;
+  /** Glob patterns, relative to `projectRoot`, whose files are never collected */
+  ignore?: readonly string[];
 }
 
 export async function analyzeCrossPackageConstants(
@@ -81,6 +84,7 @@ export async function analyzeCrossPackageConstants(
     definitionsOnly = false,
     packagePriority = [],
     crossPackageDefinitionsOnly = false,
+    ignore = [],
   } = options;
 
   const packagesPath = path.join(projectRoot, 'packages');
@@ -92,10 +96,13 @@ export async function analyzeCrossPackageConstants(
       skipAddingFilesFromTsConfig: true,
       tsConfigFilePath: tsconfigPath,
     });
-    project.addSourceFilesAtPaths([
-      `${packagesPath}/**/src/**/*.ts`,
-      `${packagesPath}/**/src/**/*.tsx`,
-    ]);
+    project.addSourceFilesAtPaths(
+      buildSourceGlobs(
+        [`${packagesPath}/**/src/**/*.ts`, `${packagesPath}/**/src/**/*.tsx`],
+        projectRoot,
+        ignore
+      )
+    );
   } catch {
     return createSkippedResult(
       CROSS_PACKAGE_NAME,

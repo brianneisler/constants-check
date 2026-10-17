@@ -75,4 +75,41 @@ describe('analyzeCrossPackageConstants', () => {
     const group = result.duplicateDefinitions!.duplicateDefinitions[0];
     expect(group.packages.sort()).toEqual(['pkg-a', 'pkg-b']);
   });
+
+  describe('ignore', () => {
+    // A CDK cloud assembly stages a copy of each asset, `src/` included, under
+    // the package — exactly what `packages/**/src/**` reaches into.
+    async function stagedCopy(name: string, contents: string): Promise<void> {
+      const dir = join(root, 'packages', 'infra', 'cdk.out', 'asset.abc123', 'src');
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, name), contents, 'utf8');
+    }
+
+    beforeEach(async () => {
+      await pkgFile('pkg-a', 'a.ts', `export function a() { return use('staged-twice-value'); }\n`);
+      await stagedCopy('a.ts', `export function a() { return use('staged-twice-value'); }\n`);
+    });
+
+    it('counts a staged build copy as source when nothing is ignored', async () => {
+      const result = await analyzeCrossPackageConstants(root);
+      expect(result.stringFindings.map((f) => f.value)).toContain('staged-twice-value');
+    });
+
+    it('never collects files under an ignored pattern', async () => {
+      const result = await analyzeCrossPackageConstants(root, { ignore: ['**/cdk.out/**'] });
+      expect(result.stringFindings.map((f) => f.value)).not.toContain('staged-twice-value');
+      expect(result.success).toBe(true);
+    });
+  });
+
+  it('does not count node_modules or declaration files, as before', async () => {
+    await pkgFile('pkg-a', 'a.ts', `export function a() { return use('dep-shared-value'); }\n`);
+    await pkgFile('pkg-a', 'types.d.ts', `declare const X: 'dep-shared-value';\n`);
+    const dep = join(root, 'packages', 'pkg-a', 'node_modules', 'dep', 'src');
+    await mkdir(dep, { recursive: true });
+    await writeFile(join(dep, 'd.ts'), `export const D = use('dep-shared-value');\n`, 'utf8');
+
+    const result = await analyzeCrossPackageConstants(root);
+    expect(result.stringFindings.map((f) => f.value)).not.toContain('dep-shared-value');
+  });
 });

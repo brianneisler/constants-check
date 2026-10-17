@@ -30,6 +30,7 @@ describe('loadConfigFile', () => {
       paths: ['src', 'lib'],
       files: ['a.ts', 'b.ts'],
       packagePriority: ['core', 'utils'],
+      ignore: ['**/cdk.out/**', 'dist/**'],
       minDuplication: 3,
       minStringLength: 5,
       ignoreNumbers: [0, 1, 2],
