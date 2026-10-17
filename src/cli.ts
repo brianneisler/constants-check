@@ -61,6 +61,11 @@ program
     'Comma-separated package priority for consolidation (first = highest)',
     (v: string) => v.split(',').map((s) => s.trim())
   )
+  .option(
+    '-i, --ignore <patterns>',
+    'Comma-separated glob patterns (relative to the root) to skip, added to the config file\'s "ignore"',
+    (v: string) => v.split(',').map((s) => s.trim())
+  )
   .option('--threshold <n>', 'Max allowed issue count under --check', parseThresholdArg);
 
 program.parse();
@@ -77,6 +82,7 @@ interface CliOptions {
   paths?: string[];
   files?: string[];
   packagePriority?: string[];
+  ignore?: string[];
   threshold?: number;
 }
 
@@ -98,6 +104,8 @@ async function main(): Promise<void> {
   const files = cliOpts.files ?? fileCfg?.files;
   const packagePriority = cliOpts.packagePriority ?? fileCfg?.packagePriority;
   const threshold = cliOpts.threshold ?? fileCfg?.threshold;
+  // Additive, unlike `paths`: a one-off --ignore must not drop the configured ones.
+  const ignore = [...(fileCfg?.ignore ?? []), ...(cliOpts.ignore ?? [])];
 
   const analysisConfig = {
     ignoreNumbers: fileCfg?.ignoreNumbers,
@@ -110,6 +118,7 @@ async function main(): Promise<void> {
     console.log('[CONSTANTS] Monorepo:', monorepo);
     if (fileCfg) console.log('[CONSTANTS] Loaded constants.config.json');
     if (threshold != null) console.log('[CONSTANTS] Threshold:', threshold);
+    if (ignore.length > 0) console.log('[CONSTANTS] Ignoring:', ignore.join(', '));
   }
 
   if (definitionsOnly) {
@@ -134,6 +143,7 @@ async function main(): Promise<void> {
       verbose,
       files: files && files.length > 0 ? files : undefined,
       packagePriority,
+      ignore,
       config: analysisConfig,
     });
 

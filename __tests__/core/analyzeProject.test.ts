@@ -101,6 +101,23 @@ describe('runConstantsAnalyzer', () => {
     expect(results.length).toBeGreaterThanOrEqual(2);
   });
 
+  it('passes ignore patterns to the cross-package analysis', async () => {
+    await writeFile(join(root, 'package.json'), JSON.stringify({ name: 'mono' }), 'utf8');
+    await writeFile(join(root, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }), 'utf8');
+    const source = `export function a() { return use('mono-staged-value'); }\n`;
+    for (const dir of ['packages/pkg-a/src', 'packages/pkg-a/cdk.out/asset.abc/src']) {
+      await mkdir(join(root, dir), { recursive: true });
+      await writeFile(join(root, dir, 'a.ts'), source, 'utf8');
+    }
+
+    const values = async (ignore?: string[]): Promise<string[]> => {
+      const { results } = await runConstantsAnalyzer({ root, crossPackageOnly: true, ignore });
+      return results.flatMap((r) => r.stringFindings.map((f) => String(f.value)));
+    };
+    expect(await values()).toContain('mono-staged-value');
+    expect(await values(['**/cdk.out/**'])).not.toContain('mono-staged-value');
+  });
+
   it('keeps findings when the file filter matches their location', async () => {
     await tsProject(root);
     await writeFile(

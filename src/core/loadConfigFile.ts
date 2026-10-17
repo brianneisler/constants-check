@@ -19,6 +19,8 @@ export interface ConstantsConfigFile {
   paths?: string[];
   files?: string[];
   packagePriority?: string[];
+  /** Glob patterns, relative to the root, whose files are never collected or scanned */
+  ignore?: string[];
 
   // Analysis tuning
   minDuplication?: number;
@@ -36,7 +38,12 @@ const BOOL_KEYS: (keyof ConstantsConfigFile)[] = [
   'definitionsOnly',
   'verbose',
 ];
-const STRING_ARRAY_KEYS: (keyof ConstantsConfigFile)[] = ['paths', 'files', 'packagePriority'];
+const STRING_ARRAY_KEYS: (keyof ConstantsConfigFile)[] = [
+  'paths',
+  'files',
+  'packagePriority',
+  'ignore',
+];
 const NUMBER_KEYS: (keyof ConstantsConfigFile)[] = [
   'minDuplication',
   'minStringLength',
