@@ -7,7 +7,6 @@ import type {
   DuplicateDefinitionGroup,
   DuplicateDefinitionsResult,
 } from '../types/constantsTypes.js';
-import { deepEqual } from '../comparison/deepEqual.js';
 import { areNamesSimilar } from '../comparison/fuzzyMatch.js';
 import { hashObjectStructure } from './hashUtils.js';
 import { MIN_DEFINITION_DUPLICATION } from './config.js';
@@ -70,9 +69,8 @@ function matchObjectWithStandalone(
   return areNamesSimilar(propName, standaloneDef.name);
 }
 
-function doDefinitionsMatch(def1: ConstantDefinition, def2: ConstantDefinition): boolean {
-  if (!deepEqual(def1.value, def2.value)) return false;
-
+/** Whether two definitions of the same value are named alike. */
+function doNamesMatch(def1: ConstantDefinition, def2: ConstantDefinition): boolean {
   const isObject1 = isObjectProperty(def1);
   const isObject2 = isObjectProperty(def2);
 
@@ -94,7 +92,7 @@ function findMatchingGroup(
   groups: ConstantDefinition[][]
 ): ConstantDefinition[] | null {
   for (const group of groups) {
-    if (doDefinitionsMatch(def, group[0])) {
+    if (doNamesMatch(def, group[0])) {
       return group;
     }
   }

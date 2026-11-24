@@ -59,7 +59,6 @@ highlights:
 | projectDiscovery.ts     | 86%   |                                            |
 | detectTypeContext.ts    | 80%   |                                            |
 | analyzePackage.ts       | 79%   |                                            |
-| deepEqual.ts            | 79%   | residual equivalent mutants                |
 | analyzeCrossPackage.ts  | 67%   |                                            |
 | analyzeProject.ts       | 65%   | uncovered: error + option-default branches |
 
@@ -78,8 +77,10 @@ underlying code is dead, redundant, or buggy. Mutation testing surfaced several
 such cases, which were then fixed rather than worked around:
 
 - **`deepEqual.ts`** conflated arrays with objects (`[1]` compared equal to
-  `{0: 1}`). The redundant array branch is gone; a mixed array/object pair now
-  short-circuits to `false`.
+  `{0: 1}`). That was fixed first; the module was later removed altogether,
+  once definitions were grouped by value before their names are compared. A
+  definition's value is only ever a string or a number, so the value check
+  inside the comparison could never be false and nothing else called it.
 - **`fileUtils.ts`** guarded `readFile` with a separate `fileExists` check that
   was behaviorally redundant with the surrounding `try/catch` (and a TOCTOU
   race). Removing it took the file from 60% → 100% — the unkillable mutants
@@ -91,9 +92,12 @@ such cases, which were then fixed rather than worked around:
   constant whose only consumer was a permanently-dead branch. The flag is now
   wired to a real `--cross-package-definitions-only` CLI option.
 
-The residual survivors in `deepEqual.ts` are genuine equivalent mutants (early
-`===`/`null` short-circuits whose fall-through returns the same value) and are
-documented rather than chased.
+Two survivors are accepted as equivalent. In `scanSourceFiles.ts`, the text of
+the placeholder a path is registered with while ts-morph orders the files: the
+placeholder is released before any file is read, so its text is never seen. In
+`fileLines.ts`, the upper bound the line search starts from: a bound past the
+last line start compares as "not at or before the position" and the search
+narrows to the same line.
 
 ## Where to improve next
 
