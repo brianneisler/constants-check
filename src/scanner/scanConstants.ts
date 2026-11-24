@@ -6,10 +6,11 @@
 
 import { Node, SourceFile } from 'ts-morph';
 import type { ConstantDefinition, LocationKey, NumberFormat } from '../types/constantsTypes.js';
+import { fileLinesOf, startLineOf } from './fileLines.js';
 import {
   hasIgnoreNextLineComment,
-  buildIgnoreBlocks,
   isInIgnoreBlock,
+  type IgnoreBlock,
 } from './handleIgnoreComments.js';
 import { extractObjectProperties, addStringConstant, addNumberConstant } from './scanObjects.js';
 
@@ -43,7 +44,7 @@ function handleConstInitializer(
   stringConstants: Map<string, ConstantDefinition[]>,
   numberConstants: Map<string, ConstantDefinition[]>,
   constantLocations: Set<LocationKey>,
-  ignoreBlocks: Array<{ start: number; end: number }>
+  ignoreBlocks: readonly IgnoreBlock[]
 ): void {
   let actualInit = initializer;
   if (Node.isAsExpression(initializer) || Node.isTypeAssertion(initializer)) {
@@ -52,7 +53,7 @@ function handleConstInitializer(
 
   if (Node.isStringLiteral(actualInit) || Node.isNoSubstitutionTemplateLiteral(actualInit)) {
     const value = actualInit.getLiteralText();
-    const line = actualInit.getStartLineNumber();
+    const line = startLineOf(actualInit);
     addStringConstant(
       value,
       { file: relativePath, fullPath: name, line, name, packageName, value },
@@ -62,7 +63,7 @@ function handleConstInitializer(
   } else if (Node.isNumericLiteral(actualInit)) {
     const value = actualInit.getLiteralValue();
     const format = getNumberFormat(actualInit);
-    const line = actualInit.getStartLineNumber();
+    const line = startLineOf(actualInit);
     addNumberConstant(
       value,
       format,
@@ -93,13 +94,13 @@ function scanConstVariables(
   constantLocations: Set<LocationKey>
 ): void {
   const variableStatements = file.getVariableStatements();
-  const ignoreBlocks = buildIgnoreBlocks(file.getFullText());
+  const { ignoreBlocks } = fileLinesOf(file);
 
   for (const statement of variableStatements) {
     if (
       statement.getDeclarationKind() !== CONST_DECLARATION_KIND ||
       hasIgnoreNextLineComment(statement) ||
-      isInIgnoreBlock(statement.getStartLineNumber(), ignoreBlocks)
+      isInIgnoreBlock(startLineOf(statement), ignoreBlocks)
     ) {
       continue;
     }
@@ -133,7 +134,7 @@ function processEnumMember(
   stringConstants: Map<string, ConstantDefinition[]>,
   numberConstants: Map<string, ConstantDefinition[]>,
   constantLocations: Set<LocationKey>,
-  ignoreBlocks: Array<{ start: number; end: number }>
+  ignoreBlocks: readonly IgnoreBlock[]
 ): void {
   if (!Node.isEnumMember(member)) return;
 
@@ -144,12 +145,12 @@ function processEnumMember(
 
   if (hasIgnoreNextLineComment(member)) return;
 
-  const memberLine = member.getStartLineNumber();
+  const memberLine = startLineOf(member);
   if (isInIgnoreBlock(memberLine, ignoreBlocks)) return;
 
   if (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer)) {
     const value = initializer.getLiteralText();
-    const line = initializer.getStartLineNumber();
+    const line = startLineOf(initializer);
     addStringConstant(
       value,
       { file: relativePath, fullPath, line, name: memberName, packageName, value },
@@ -159,7 +160,7 @@ function processEnumMember(
   } else if (Node.isNumericLiteral(initializer)) {
     const value = initializer.getLiteralValue();
     const format = getNumberFormat(initializer);
-    const line = initializer.getStartLineNumber();
+    const line = startLineOf(initializer);
     addNumberConstant(
       value,
       format,
@@ -179,11 +180,11 @@ function scanEnumConstants(
   constantLocations: Set<LocationKey>
 ): void {
   const enums = file.getEnums();
-  const ignoreBlocks = buildIgnoreBlocks(file.getFullText());
+  const { ignoreBlocks } = fileLinesOf(file);
 
   for (const enumDecl of enums) {
     const enumName = enumDecl.getName();
-    const enumLine = enumDecl.getStartLineNumber();
+    const enumLine = startLineOf(enumDecl);
 
     if (
       !enumName ||

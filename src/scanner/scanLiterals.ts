@@ -13,11 +13,8 @@ import type {
   ConstantsConfig,
   LocationKey,
 } from '../types/constantsTypes.js';
-import {
-  hasIgnoreNextLineComment,
-  buildIgnoreBlocks,
-  isInIgnoreBlock,
-} from './handleIgnoreComments.js';
+import { fileLinesOf, startLineOf } from './fileLines.js';
+import { hasIgnoreNextLineComment, isInIgnoreBlock } from './handleIgnoreComments.js';
 import { getNumberFormat, createNumberKey } from './scanConstants.js';
 import {
   isTypeLiteral,
@@ -39,11 +36,10 @@ function sortConstantSuggestions(suggestions: ConstantDefinition[]): ConstantDef
 
 function getLocation(node: Node, relativePath: string): ConstantLocation {
   try {
-    const line = node.getStartLineNumber();
-    const sourceFile = node.getSourceFile();
-    const lineContent = sourceFile.getFullText().split('\n')[line - 1] || '';
+    const lines = fileLinesOf(node.getSourceFile());
+    const line = lines.lineAt(node.getStart());
     return {
-      code: lineContent.trim(),
+      code: (lines.text(line) || '').trim(),
       file: relativePath,
       line,
     };
@@ -65,7 +61,7 @@ export function scanStrings(
 ): void {
   const stringLiterals = file.getDescendantsOfKind(SyntaxKind.StringLiteral);
   const templateLiterals = file.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral);
-  const ignoreBlocks = buildIgnoreBlocks(file.getFullText());
+  const { ignoreBlocks } = fileLinesOf(file);
 
   [...stringLiterals, ...templateLiterals].forEach((node) => {
     const text = node.getLiteralText();
@@ -78,7 +74,7 @@ export function scanStrings(
     if (isTypeofSentinel(node, text)) return;
     if (hasIgnoreNextLineComment(node)) return;
 
-    const line = node.getStartLineNumber();
+    const line = startLineOf(node);
     if (isInIgnoreBlock(line, ignoreBlocks)) return;
 
     const locationKey = `${relativePath}:${line}`;
@@ -103,7 +99,7 @@ export function scanNumbers(
   constantLocations: Set<LocationKey>
 ): void {
   const numericLiterals = file.getDescendantsOfKind(SyntaxKind.NumericLiteral);
-  const ignoreBlocks = buildIgnoreBlocks(file.getFullText());
+  const { ignoreBlocks } = fileLinesOf(file);
 
   numericLiterals.forEach((node) => {
     const val = node.getLiteralValue();
@@ -113,7 +109,7 @@ export function scanNumbers(
     if (isTypeLiteral(node)) return;
     if (hasIgnoreNextLineComment(node)) return;
 
-    const line = node.getStartLineNumber();
+    const line = startLineOf(node);
     if (isInIgnoreBlock(line, ignoreBlocks)) return;
 
     const locationKey = `${relativePath}:${line}`;

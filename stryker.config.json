@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
-  "_comment": "'mutate' covers the full analysis library. The CLI entry (cli.ts), the barrel export (index.ts), and type-only files carry no testable logic and are excluded. 'break' is the minimum mutation score that fails the run; the suite currently scores ~85%, so 80 locks in progress with headroom for the known equivalent mutants in deepEqual/fileUtils. Raise it as coverage improves.",
+  "_comment": "'mutate' covers the full analysis library. The CLI entry (cli.ts), the barrel export (index.ts), and type-only files carry no testable logic and are excluded. 'break' is the minimum mutation score that fails the run; the suite currently scores ~85%, so 80 locks in progress with headroom for the known equivalent mutants (see docs/mutation-testing.md). Raise it as coverage improves.",
   "packageManager": "npm",
   "testRunner": "vitest",
   "checkers": ["typescript"],

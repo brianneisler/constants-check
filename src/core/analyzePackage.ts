@@ -5,18 +5,15 @@
 import * as path from 'path';
 import { Project } from 'ts-morph';
 import type {
-  ConstantDefinition,
   ConstantFinding,
-  ConstantOccurrence,
   ConstantsConfig,
   ConstantsResult,
   ExtendedConstantsResult,
-  LocationKey,
 } from '../types/constantsTypes.js';
-import { scanConstants } from '../scanner/scanConstants.js';
-import { scanStrings, scanNumbers, convertToFindings } from '../scanner/scanLiterals.js';
+import { convertToFindings } from '../scanner/scanLiterals.js';
 import { analyzeDuplicateDefinitions } from './analyzeDefinitions.js';
 import { DEFAULT_CONFIG } from './config.js';
+import { findSourceFilePaths, scanSourceFiles } from './scanSourceFiles.js';
 import { buildSourceGlobs } from './sourceGlobs.js';
 
 const NODE_MODULES = 'node_modules';
@@ -41,48 +38,6 @@ export function createSkippedResult(
 
 export function shouldSkipFile(filePath: string): boolean {
   return filePath.includes(NODE_MODULES) || filePath.endsWith(TYPE_DEFINITION_EXT);
-}
-
-function collectConstants(
-  sourceFiles: import('ts-morph').SourceFile[],
-  projectRoot: string,
-  packageName: string,
-  stringConstants: Map<string, ConstantDefinition[]>,
-  numberConstants: Map<string, ConstantDefinition[]>,
-  constantLocations: Set<LocationKey>
-): void {
-  for (const file of sourceFiles) {
-    const filePath = file.getFilePath();
-    if (shouldSkipFile(filePath)) continue;
-
-    const relativePath = path.relative(projectRoot, filePath);
-    scanConstants(
-      file,
-      relativePath,
-      packageName,
-      stringConstants,
-      numberConstants,
-      constantLocations
-    );
-  }
-}
-
-function collectDuplicates(
-  sourceFiles: import('ts-morph').SourceFile[],
-  projectRoot: string,
-  stringCounts: Map<string, ConstantOccurrence>,
-  numberCounts: Map<string, ConstantOccurrence>,
-  config: ConstantsConfig,
-  constantLocations: Set<LocationKey>
-): void {
-  for (const file of sourceFiles) {
-    const filePath = file.getFilePath();
-    if (shouldSkipFile(filePath)) continue;
-
-    const relativePath = path.relative(projectRoot, filePath);
-    scanStrings(file, relativePath, stringCounts, config, constantLocations);
-    scanNumbers(file, relativePath, numberCounts, config, constantLocations);
-  }
 }
 
 export interface AnalyzePackageOptions {
@@ -113,12 +68,14 @@ export async function analyzePackageConstants(
   const tsconfigPath = path.join(projectPath, 'tsconfig.json');
 
   let project: Project;
+  let filePaths: string[];
   try {
     project = new Project({
       skipAddingFilesFromTsConfig: true,
       tsConfigFilePath: tsconfigPath,
     });
-    project.addSourceFilesAtPaths(
+    filePaths = findSourceFilePaths(
+      project,
       buildSourceGlobs(
         [
           `${srcPath}/**/*.ts`,
@@ -128,49 +85,27 @@ export async function analyzePackageConstants(
         ],
         projectRoot,
         ignore
-      )
+      ),
+      shouldSkipFile
     );
   } catch {
     return createSkippedResult(packageName, displayName, 'Could not initialize ts-morph project');
   }
 
-  const sourceFiles = project.getSourceFiles().filter((f) => {
-    const filePath = f.getFilePath();
-    return !filePath.includes('node_modules') && !filePath.endsWith('.d.ts');
-  });
-
-  if (sourceFiles.length === 0) {
+  if (filePaths.length === 0) {
     return createSkippedResult(packageName, displayName, 'No source files found');
   }
 
-  const stringConstants = new Map<string, ConstantDefinition[]>();
-  const numberConstants = new Map<string, ConstantDefinition[]>();
-  const constantLocations = new Set<LocationKey>();
-
-  collectConstants(
-    sourceFiles,
-    projectRoot,
-    packageName,
-    stringConstants,
-    numberConstants,
-    constantLocations
+  const { numberConstants, numberCounts, stringConstants, stringCounts } = scanSourceFiles(
+    project,
+    filePaths,
+    { config, definitionsOnly, packageNameFor: () => packageName, projectRoot }
   );
 
   let stringFindings: ConstantFinding[] = [];
   let numberFindings: ConstantFinding[] = [];
 
   if (!definitionsOnly) {
-    const stringCounts = new Map<string, ConstantOccurrence>();
-    const numberCounts = new Map<string, ConstantOccurrence>();
-    collectDuplicates(
-      sourceFiles,
-      projectRoot,
-      stringCounts,
-      numberCounts,
-      config,
-      constantLocations
-    );
-
     stringFindings = convertToFindings(stringCounts, stringConstants, config);
     numberFindings = convertToFindings(numberCounts, numberConstants, config);
   }
