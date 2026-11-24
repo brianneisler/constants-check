@@ -202,7 +202,7 @@ npx constants-check --check
 
 ## Requirements
 
-- Node.js >= 20
+- Node.js >= 22.12
 - TypeScript/JavaScript project with `tsconfig.json` (for project resolution)
 
 ## License

@@ -8,7 +8,7 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     clean: true,
-    target: 'node20',
+    target: 'node22',
     outDir: 'dist',
   },
   {
@@ -16,7 +16,7 @@ export default defineConfig([
     format: ['esm'],
     splitting: false,
     sourcemap: true,
-    target: 'node20',
+    target: 'node22',
     outDir: 'dist',
     banner: { js: '#!/usr/bin/env node' },
   },

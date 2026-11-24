@@ -1,6 +1,6 @@
 {
   "name": "constants-check",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Detect duplicate constants in TypeScript/JavaScript projects and highlight where they exist to drive refactoring",
   "type": "module",
   "main": "./dist/index.js",
@@ -58,7 +58,7 @@
     "url": "https://github.com/brianneisler/constants-check/issues"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "chalk": "^6.0.1",
