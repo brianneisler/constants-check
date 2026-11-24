@@ -221,4 +221,50 @@ describe('analyzeDuplicateDefinitions', () => {
     );
     expect(result.totalDuplicates).toBe(1);
   });
+
+  it('keeps a string and a number with the same text apart', () => {
+    const result = analyzeDuplicateDefinitions(
+      stringMap(def({ name: 'PORT', value: '8080' })),
+      new Map([['key', [def({ name: 'PORT', value: 8080 })]]])
+    );
+
+    expect(result.totalDuplicates).toBe(0);
+  });
+
+  it('joins the first group opened for a value, whatever was opened in between', () => {
+    const result = analyzeDuplicateDefinitions(
+      stringMap(
+        def({ name: 'MAX_RETRIES', value: 'v', file: 'first.ts' }),
+        def({ name: 'ZULU_FLAG', value: 'v', file: 'unrelated-name.ts' }),
+        def({ name: 'MAX_RETRY', value: 'w', file: 'other-value.ts' }),
+        def({ name: 'MAX_RETRY', value: 'v', file: 'second.ts' }),
+        def({ name: 'ZULU_FLAGS', value: 'v', file: 'third.ts' })
+      ),
+      empty
+    );
+
+    expect(
+      result.duplicateDefinitions.map((group) => group.definitions.map((d) => d.file))
+    ).toEqual([
+      ['first.ts', 'second.ts'],
+      ['unrelated-name.ts', 'third.ts'],
+    ]);
+  });
+
+  it('reports groups in the order their first definition appeared', () => {
+    const result = analyzeDuplicateDefinitions(
+      stringMap(
+        def({ name: 'BRAVO_LIMIT', value: 'b' }),
+        def({ name: 'ALPHA_LIMIT', value: 'a' }),
+        def({ name: 'ALPHA_LIMITS', value: 'a' }),
+        def({ name: 'BRAVO_LIMITS', value: 'b' })
+      ),
+      empty
+    );
+
+    expect(result.duplicateDefinitions.map((group) => group.name)).toEqual([
+      'BRAVO_LIMIT',
+      'ALPHA_LIMIT',
+    ]);
+  });
 });

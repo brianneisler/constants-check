@@ -4,7 +4,12 @@
 
 import { Node } from 'ts-morph';
 import type { ConstantDefinition, LocationKey, NumberFormat } from '../types/constantsTypes.js';
-import { hasIgnoreNextLineComment, isInIgnoreBlock } from './handleIgnoreComments.js';
+import { startLineOf } from './fileLines.js';
+import {
+  hasIgnoreNextLineComment,
+  isInIgnoreBlock,
+  type IgnoreBlock,
+} from './handleIgnoreComments.js';
 import { getNumberFormat, createNumberKey, createLocationKey } from './scanConstants.js';
 
 export function addStringConstant(
@@ -44,13 +49,13 @@ function handleObjectProperty(
   stringConstants: Map<string, ConstantDefinition[]>,
   numberConstants: Map<string, ConstantDefinition[]>,
   constantLocations: Set<LocationKey>,
-  ignoreBlocks: Array<{ start: number; end: number }>
+  ignoreBlocks: readonly IgnoreBlock[]
 ): void {
   if (!Node.isPropertyAssignment(property)) return;
 
   if (hasIgnoreNextLineComment(property)) return;
 
-  const propertyLine = property.getStartLineNumber();
+  const propertyLine = startLineOf(property);
   if (isInIgnoreBlock(propertyLine, ignoreBlocks)) return;
 
   const propertyName = property.getName();
@@ -59,7 +64,7 @@ function handleObjectProperty(
 
   if (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer)) {
     const value = initializer.getLiteralText();
-    const line = initializer.getStartLineNumber();
+    const line = startLineOf(initializer);
     addStringConstant(
       value,
       { file: relativePath, fullPath, line, name: propertyName, packageName, value },
@@ -69,7 +74,7 @@ function handleObjectProperty(
   } else if (Node.isNumericLiteral(initializer)) {
     const value = initializer.getLiteralValue();
     const format = getNumberFormat(initializer);
-    const line = initializer.getStartLineNumber();
+    const line = startLineOf(initializer);
     addNumberConstant(
       value,
       format,
@@ -99,7 +104,7 @@ export function extractObjectProperties(
   stringConstants: Map<string, ConstantDefinition[]>,
   numberConstants: Map<string, ConstantDefinition[]>,
   constantLocations: Set<LocationKey>,
-  ignoreBlocks: Array<{ start: number; end: number }>
+  ignoreBlocks: readonly IgnoreBlock[]
 ): void {
   if (!Node.isObjectLiteralExpression(objectLiteral)) return;
 

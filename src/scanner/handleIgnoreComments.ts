@@ -4,24 +4,32 @@
  * Handles ignore comments for the constants analyzer
  */
 
-import { Node } from 'ts-morph';
+import type { Node } from 'ts-morph';
+import { fileLinesOf } from './fileLines.js';
 
 const IGNORE_NEXT_LINE_PATTERN = /constants-ignore-next-line/;
 const IGNORE_BLOCK_START_PATTERN = /constants-ignore-start/;
 const IGNORE_BLOCK_END_PATTERN = /constants-ignore-end/;
 
+export interface IgnoreBlock {
+  start: number;
+  end: number;
+}
+
+/**
+ * True when the line above the node, or the node's own line before it, carries
+ * a `constants-ignore-next-line` comment.
+ */
 export function hasIgnoreNextLineComment(node: Node): boolean {
   try {
-    const sourceFile = node.getSourceFile();
+    const lines = fileLinesOf(node.getSourceFile());
     const nodeStart = node.getStart();
-    const fullText = sourceFile.getFullText();
-    const textBefore = fullText.substring(0, nodeStart);
-    const lines = textBefore.split('\n');
+    const previous = lines.text(lines.lineAt(nodeStart) - 1);
 
-    if (lines.length >= 2 && IGNORE_NEXT_LINE_PATTERN.test(lines[lines.length - 2])) {
+    if (previous !== undefined && IGNORE_NEXT_LINE_PATTERN.test(previous)) {
       return true;
     }
-    if (IGNORE_NEXT_LINE_PATTERN.test(lines[lines.length - 1])) {
+    if (IGNORE_NEXT_LINE_PATTERN.test(lines.textBefore(nodeStart))) {
       return true;
     }
   } catch {
@@ -30,9 +38,9 @@ export function hasIgnoreNextLineComment(node: Node): boolean {
   return false;
 }
 
-export function buildIgnoreBlocks(fileText: string): Array<{ start: number; end: number }> {
+export function buildIgnoreBlocks(fileText: string): IgnoreBlock[] {
   const lines = fileText.split('\n');
-  const ignoreBlocks: Array<{ start: number; end: number }> = [];
+  const ignoreBlocks: IgnoreBlock[] = [];
   let currentBlockStart: number | null = null;
 
   lines.forEach((lineText, index) => {
@@ -48,9 +56,6 @@ export function buildIgnoreBlocks(fileText: string): Array<{ start: number; end:
   return ignoreBlocks;
 }
 
-export function isInIgnoreBlock(
-  line: number,
-  ignoreBlocks: Array<{ start: number; end: number }>
-): boolean {
+export function isInIgnoreBlock(line: number, ignoreBlocks: readonly IgnoreBlock[]): boolean {
   return ignoreBlocks.some((block) => line >= block.start && line <= block.end);
 }

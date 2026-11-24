@@ -101,26 +101,45 @@ function findMatchingGroup(
   return null;
 }
 
+/**
+ * Two definitions can only match when their values are equal, and a string or
+ * a number is equal only to itself. Keying on the value therefore names every
+ * group a definition could join, so it is compared with those alone instead of
+ * with every group opened so far.
+ */
+function valueKeyOf(value: string | number): string {
+  return `${typeof value}:${value}`;
+}
+
 function groupByFuzzyNameAndValue(
   definitions: ConstantDefinition[]
 ): Map<string, ConstantDefinition[]> {
   const groups: ConstantDefinition[][] = [];
+  // The groups each value could join, in the order they were opened, so the
+  // first match is the one a search of every group would have found.
+  const groupsByValue = new Map<string, ConstantDefinition[][]>();
 
   for (const def of definitions) {
-    const matchingGroup = findMatchingGroup(def, groups);
+    const key = valueKeyOf(def.value);
+    let candidates = groupsByValue.get(key);
+    if (!candidates) {
+      candidates = [];
+      groupsByValue.set(key, candidates);
+    }
+    const matchingGroup = findMatchingGroup(def, candidates);
 
     if (matchingGroup) {
       matchingGroup.push(def);
     } else {
-      groups.push([def]);
+      const opened = [def];
+      groups.push(opened);
+      candidates.push(opened);
     }
   }
 
   const result = new Map<string, ConstantDefinition[]>();
   for (const group of groups) {
-    if (group.length > 0) {
-      result.set(getBaseName(group[0]), group);
-    }
+    result.set(getBaseName(group[0]), group);
   }
 
   return result;
